@@ -132,7 +132,7 @@ Public Sub SaveAllSettings( _
     SaveSetting REG_APP_NAME, REG_SEC_APP, "QuickConvertDirection", CStr(CLng(AppOpts.QuickConvertDirection))
     SaveSetting REG_APP_NAME, REG_SEC_APP, "ConfirmOverwrite", IIf(AppOpts.ConfirmOverwrite, "1", "0")
     SaveSetting REG_APP_NAME, REG_SEC_APP, "ShowBatchSummary", IIf(AppOpts.ShowBatchSummary, "1", "0")
-    SaveSetting REG_APP_NAME, REG_SEC_APP, "SettingsVersion", "1"
+    SaveSetting REG_APP_NAME, REG_SEC_APP, "SettingsVersion", CStr(CLng(AppOpts.SettingsVersion))
     
     On Error GoTo 0
 End Sub

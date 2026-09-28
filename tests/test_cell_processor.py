@@ -461,6 +461,89 @@ class TestCellProcessorLiveCOM(unittest.TestCase):
         self.assertEqual(self.excel.ScreenUpdating, initial_screen_updating)
         self.assertEqual(self.excel.EnableEvents, initial_events)
 
+    # --------------------------------------------------------------------------
+    # 12. Single Empty Cell HasOccupiedCells Guard
+    # --------------------------------------------------------------------------
+
+    def test_has_occupied_cells_single_empty_cell_with_data_elsewhere(self):
+        """
+        Verify that HasOccupiedCells on a single empty cell returns False even
+        when other cells across the worksheet contain data (guard against SpecialCells whole-sheet scan).
+        """
+        has_occ_macro = f"'{self.wb_name}'!CellProcessor.HasOccupiedCells"
+
+        # Populate other cells far away
+        self.ws.Range("Z100").Value = "Existing data elsewhere"
+        self.ws.Range("H50").Formula = "=SUM(1, 2)"
+
+        # Target cell A1 is completely empty
+        self.ws.Range("A1").Value = None
+        is_occ_empty = self.excel.Run(has_occ_macro, self.ws.Range("A1"))
+        self.assertFalse(is_occ_empty, "Single empty cell should NOT be reported as occupied even if other cells have data")
+
+        # Target cell A1 has constant
+        self.ws.Range("A1").Value = 123
+        is_occ_val = self.excel.Run(has_occ_macro, self.ws.Range("A1"))
+        self.assertTrue(is_occ_val, "Single cell with value should be reported as occupied")
+
+        # Target cell A1 has formula
+        self.ws.Range("A1").Formula = "=SUM(5, 5)"
+        is_occ_fmla = self.excel.Run(has_occ_macro, self.ws.Range("A1"))
+        self.assertTrue(is_occ_fmla, "Single cell with formula should be reported as occupied")
+
+    # --------------------------------------------------------------------------
+    # 13. Exceeding MAX_UNDO_CELLS Invalidation
+    # --------------------------------------------------------------------------
+
+    def test_prepare_undo_snapshot_exceeding_max_cells_clears_previous_undo(self):
+        """
+        Verify that when an operation exceeds MAX_UNDO_CELLS (10,000 cells),
+        any existing committed undo is invalidated/cleared rather than left stale.
+        """
+        bridge_macro = f"'{self.wb_name}'!CellProcessor.ConvertRangeBridge"
+        prepare_undo_macro = f"'{self.wb_name}'!UndoManager.PrepareUndoSnapshot"
+        is_undo_avail_macro = f"'{self.wb_name}'!UndoManager.IsUndoAvailable"
+
+        # 1. Establish a valid committed undo
+        self.ws.Range("A1").Value = 1000
+        res = self.excel.Run(bridge_macro, self.ws.Range("A1"), self.ws.Range("B1"))
+        self.assertTrue(res[0])
+        self.assertTrue(self.excel.Run(is_undo_avail_macro), "Committed undo should be available")
+
+        # 2. Invoke PrepareUndoSnapshot on a range with 10,001 cells (> MAX_UNDO_CELLS)
+        rng_large = self.ws.Range("A1:A10001")
+        self.assertEqual(rng_large.Rows.Count * rng_large.Columns.Count, 10001)
+        self.excel.Run(prepare_undo_macro, rng_large)
+
+        # 3. Verify previous undo was cleared
+        self.assertFalse(
+            self.excel.Run(is_undo_avail_macro),
+            "Exceeding MAX_UNDO_CELLS must invalidate previous undo snapshot",
+        )
+
+    # --------------------------------------------------------------------------
+    # 14. SettingsVersion Persistence
+    # --------------------------------------------------------------------------
+
+    def test_settings_version_persistence(self):
+        """Verify SettingsVersion can be saved and loaded dynamically from Registry."""
+        save_macro = f"'{self.wb_name}'!Settings.SaveSettingsBridge"
+        load_macro = f"'{self.wb_name}'!Settings.LoadSettingsBridge"
+
+        # Save with custom SettingsVersion = 2
+        self.excel.Run(
+            save_macro,
+            0, 0, 0, 0,
+            0, True, 0, "", "", "",
+            0, True,
+            0, 0, True, True, 2
+        )
+
+        loaded = self.excel.Run(load_macro)
+        saved_version = loaded[16]  # 17th element (index 16) is SettingsVersion
+        self.assertEqual(saved_version, 2, f"Expected SettingsVersion=2, got {saved_version}")
+
 
 if __name__ == "__main__":
     unittest.main()
+

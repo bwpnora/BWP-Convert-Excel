@@ -45,7 +45,10 @@ Public Sub PrepareUndoSnapshot(ByVal TargetRange As Range)
     
     Dim totalCells As Double
     totalCells = CDbl(TargetRange.Rows.Count) * CDbl(TargetRange.Columns.Count)
-    If totalCells > CDbl(MAX_UNDO_CELLS) Then Exit Sub
+    If totalCells > CDbl(MAX_UNDO_CELLS) Then
+        ClearUndo
+        Exit Sub
+    End If
     
     Dim rCount As Long, cCount As Long
     rCount = TargetRange.Rows.Count

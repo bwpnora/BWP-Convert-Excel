@@ -329,6 +329,11 @@ Public Function HasOccupiedCells(ByVal TargetRange As Range) As Boolean
         Exit Function
     End If
 
+    If TargetRange.Rows.Count = 1 And TargetRange.Columns.Count = 1 Then
+        HasOccupiedCells = (Not IsEmpty(TargetRange.Value2)) Or TargetRange.HasFormula
+        Exit Function
+    End If
+
     Dim hasConst As Boolean
     Dim hasFmla As Boolean
 
