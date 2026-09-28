@@ -1,0 +1,1433 @@
+BWPConvertTTNVN
+PRODUCT & TECHNICAL BRIEF
+Vietnamese Number-to-Words Excel Add-in
+
+============================================================
+1. PROJECT NAME
+============================================================
+
+Product name:
+BWPConvertTTNVN
+
+Suggested internal/technical identifier:
+BWPConvertTTNVN
+
+Product type:
+Microsoft Excel Add-in for converting numeric values into Vietnamese words.
+
+Primary implementation target:
+VBA + XLAM
+
+Primary platform:
+Microsoft Excel for Windows
+
+
+============================================================
+2. PRODUCT GOAL
+============================================================
+
+Build a lightweight, offline, open-source Microsoft Excel Add-in that allows users to convert numbers into Vietnamese words through a simple click-based workflow, similar in usability to VNTools but implemented independently.
+
+The product must focus on simplicity, transparency, compatibility, security, and ease of use for non-technical users.
+
+The user must NOT be required to manually type formulas in order to use the core feature.
+
+Primary workflow:
+
+Select source cell
+→ Click "Convert Number to Words"
+→ Select destination cell
+→ Click "Convert"
+→ Vietnamese text is written directly into the destination cell.
+
+Example:
+
+Input:
+125,430,000
+
+Output:
+Một trăm hai mươi lăm triệu bốn trăm ba mươi nghìn đồng chẵn.
+
+
+============================================================
+3. TARGET USERS
+============================================================
+
+The product is designed for:
+
+- Accountants
+- Finance staff
+- Administrative staff
+- HR staff
+- Procurement staff
+- Sales staff
+- Business owners
+- Small and medium enterprises
+- Users preparing quotations
+- Users preparing receipts and payment vouchers
+- Users preparing contracts
+- Users working with Vietnamese accounting documents
+
+The intended user may have no VBA, programming, or advanced Excel knowledge.
+
+
+============================================================
+4. PROBLEM TO SOLVE
+============================================================
+
+Many Vietnamese Excel users currently rely on tools such as:
+
+- VNTools
+- AccHelper
+- Legacy macros
+- Unknown-source VBA modules
+- Excel formulas such as =VND(A1)
+
+Common problems include:
+
+- Closed or unclear source code
+- Compatibility issues with newer Excel versions
+- Outdated user interfaces
+- Dependency on manually entered formulas
+- Risk of #NAME? errors when files are opened on other computers
+- Unclear security and privacy behavior
+- Difficulty auditing the source code
+
+BWPConvertTTNVN must solve these problems through:
+
+- Open source code
+- Offline operation
+- Simple click-based workflow
+- Static text output by default
+- No external DLL dependencies
+- No network requirements
+- Clear and modern Excel-native UI
+
+
+============================================================
+5. CORE PRODUCT PRINCIPLE
+============================================================
+
+The main user interaction must follow:
+
+SELECT → CLICK → CONVERT
+
+Users must not be required to type any formula for normal use.
+
+Example workflow:
+
+1. User selects cell D15.
+2. D15 contains:
+   125430000
+
+3. User clicks:
+   BWPConvertTTNVN → Convert Number to Words
+
+4. User selects destination cell:
+   E15
+
+5. User clicks:
+   Convert
+
+6. E15 becomes:
+   Một trăm hai mươi lăm triệu bốn trăm ba mươi nghìn đồng chẵn.
+
+
+============================================================
+6. EXCEL RIBBON
+============================================================
+
+After installation, Excel must display a dedicated Ribbon tab.
+
+Suggested tab name:
+
+BWPConvertTTNVN
+
+Suggested buttons:
+
+[ Convert Number to Words ]
+[ Quick Convert ]
+[ Undo ]
+[ Settings ]
+[ About ]
+
+Icons should be simple and intuitive.
+
+Suggested visual concepts:
+
+- 123 → ABC
+- Calculator
+- Text
+- Currency
+- Vietnamese currency symbol / VND concept
+
+The interface should feel native to Microsoft Excel.
+
+
+============================================================
+7. MAIN CONVERSION FORM
+============================================================
+
+When the user clicks:
+
+Convert Number to Words
+
+A VBA UserForm should appear.
+
+Suggested layout:
+
+--------------------------------------------------
+              CONVERT NUMBER TO WORDS
+--------------------------------------------------
+
+Source cell:
+[ $D$15                              ] [ Select ]
+
+Destination cell:
+[ $E$15                              ] [ Select ]
+
+Type:
+[ Vietnamese Dong                   ▼ ]
+
+Options:
+[x] Capitalize first letter
+[x] Add "đồng"
+[x] Add "chẵn"
+[ ] Uppercase all text
+
+Output mode:
+(o) Static Text
+( ) Formula
+
+                 [ CONVERT ] [ CLOSE ]
+--------------------------------------------------
+
+The form should be clear enough for a first-time user to understand immediately.
+
+
+============================================================
+8. QUICK CONVERT
+============================================================
+
+Provide a Ribbon button:
+
+Quick Convert
+
+Workflow:
+
+1. User selects a source cell.
+2. User clicks Quick Convert.
+3. The converted text is written automatically into the cell immediately to the right.
+
+Example:
+
+A1:
+1,500,000
+
+After Quick Convert:
+
+B1:
+Một triệu năm trăm nghìn đồng chẵn.
+
+If the destination cell already contains data, show a confirmation dialog:
+
+"The destination cell already contains data. Do you want to overwrite it?"
+
+Options:
+
+- Overwrite
+- Choose another cell
+- Cancel
+
+
+============================================================
+9. BATCH CONVERSION
+============================================================
+
+The add-in must support converting multiple rows at once.
+
+Example:
+
+A2 = 1,000,000
+A3 = 2,000,000
+A4 = 5,500,000
+A5 = 10,000,000
+
+User selects:
+
+A2:A5
+
+Then clicks:
+
+Quick Convert
+
+Expected output:
+
+B2 = Một triệu đồng chẵn.
+B3 = Hai triệu đồng chẵn.
+B4 = Năm triệu năm trăm nghìn đồng chẵn.
+B5 = Mười triệu đồng chẵn.
+
+Each source row must map correctly to its corresponding destination row.
+
+
+============================================================
+10. OUTPUT MODES
+============================================================
+
+The add-in must support two output modes.
+
+MODE 1 — STATIC TEXT
+
+Default mode.
+
+The converted result is written directly as plain text.
+
+Example:
+
+Một trăm triệu đồng chẵn.
+
+Advantages:
+
+- No dependency on the add-in after conversion
+- No #NAME? error on another computer
+- Safe for sharing files
+- Recommended for accounting documents and contracts
+
+MODE 2 — FORMULA
+
+The add-in may insert a worksheet formula.
+
+Examples:
+
+=VNWORDS(A1)
+
+or:
+
+=VND(A1)
+
+The result should update automatically when the source value changes.
+
+Default setting:
+
+Static Text
+
+
+============================================================
+11. EXCEL UDF FUNCTIONS
+============================================================
+
+In addition to the graphical interface, the add-in should provide worksheet functions.
+
+Suggested functions:
+
+VNWORDS
+
+Example:
+=VNWORDS(A1)
+
+Output:
+Một trăm hai mươi triệu
+
+
+VND
+
+Example:
+=VND(A1)
+
+Output:
+Một trăm hai mươi triệu đồng chẵn.
+
+
+VNDUPPER
+
+Example:
+=VNDUPPER(A1)
+
+Output:
+MỘT TRĂM HAI MƯƠI TRIỆU ĐỒNG CHẴN.
+
+
+============================================================
+12. VIETNAMESE NUMBER READING RULES
+============================================================
+
+The conversion engine must correctly handle Vietnamese number-reading rules.
+
+Examples:
+
+1
+→ Một
+
+5
+→ Năm
+
+15
+→ Mười lăm
+
+21
+→ Hai mươi mốt
+
+25
+→ Hai mươi lăm
+
+105
+→ Một trăm lẻ năm
+
+110
+→ Một trăm mười
+
+115
+→ Một trăm mười lăm
+
+1005
+→ Một nghìn không trăm lẻ năm
+
+The add-in should support an option for:
+
+- "lẻ"
+- "linh"
+
+Default:
+
+"lẻ"
+
+
+============================================================
+13. SUPPORTED NUMBER RANGE
+============================================================
+
+At minimum, support:
+
+- Units
+- Thousands
+- Millions
+- Billions
+- Trillions
+- Thousand trillions
+- Million trillions
+
+Recommended maximum:
+
+999,999,999,999,999
+
+If the value exceeds the supported range, display a friendly message:
+
+"The value exceeds the supported range."
+
+
+============================================================
+14. NEGATIVE NUMBERS
+============================================================
+
+Negative values must be supported.
+
+Example:
+
+-150000
+
+Output:
+
+Âm một trăm năm mươi nghìn đồng chẵn.
+
+
+============================================================
+15. DECIMAL NUMBERS
+============================================================
+
+Provide configurable decimal behavior.
+
+MODE 1 — Ignore decimal part
+
+Example:
+
+125.5
+
+Output:
+
+Một trăm hai mươi lăm đồng.
+
+
+MODE 2 — Read decimal digits
+
+Example:
+
+125.5
+
+Output:
+
+Một trăm hai mươi lăm phẩy năm.
+
+
+MODE 3 — Currency decimal reading
+
+Example:
+
+125.50
+
+Possible output:
+
+Một trăm hai mươi lăm đồng năm mươi xu.
+
+For VND, decimal handling may be disabled by default.
+
+
+============================================================
+16. CURRENCY OPTIONS
+============================================================
+
+Provide a dropdown with:
+
+- Vietnamese Dong
+- No Unit
+- USD
+- Custom
+
+Vietnamese Dong:
+
+Suffix:
+đồng
+
+USD:
+
+Suggested wording:
+đô la Mỹ
+
+Custom mode:
+
+Allow user-defined prefix and/or suffix.
+
+Example custom suffix:
+
+VNĐ
+
+
+============================================================
+17. TEXT FORMATTING OPTIONS
+============================================================
+
+Provide configurable output formatting.
+
+Capitalization modes:
+
+- Một trăm triệu đồng.
+- một trăm triệu đồng.
+- MỘT TRĂM TRIỆU ĐỒNG.
+
+Default:
+
+Capitalize first letter.
+
+Ending options:
+
+[x] Add "đồng"
+[x] Add "chẵn"
+[x] Add final period
+
+Default output example:
+
+Một trăm triệu đồng chẵn.
+
+
+============================================================
+18. SETTINGS
+============================================================
+
+Provide a Settings form.
+
+Suggested structure:
+
+LANGUAGE
+
+Zero / linking style:
+(o) lẻ
+( ) linh
+
+
+FORMATTING
+
+[x] Capitalize first letter
+[x] Add "đồng"
+[x] Add "chẵn"
+[x] Add final period
+
+
+OUTPUT MODE
+
+(o) Static Text
+( ) Formula
+
+
+QUICK CONVERT
+
+Output destination:
+(o) Cell on the right
+( ) Cell below
+
+
+[ SAVE ]
+
+Settings should persist between Excel sessions.
+
+
+============================================================
+19. COPYRIGHT NOTICE — UI REQUIREMENT
+============================================================
+
+The following notice must be shown clearly in the application interface:
+
+Copyright © 2026 - IT Leon
+
+IMPORTANT:
+This copyright notice is intended for the PRODUCT INTERFACE only.
+
+It should be placed in one or more clearly visible UI locations such as:
+
+- About dialog
+- Settings footer
+- Main conversion form footer
+- Ribbon About section
+
+Recommended primary location:
+
+About dialog
+
+Optional secondary location:
+
+Bottom footer of the main conversion form.
+
+Do not unnecessarily repeat the copyright notice throughout the application.
+
+
+============================================================
+20. SELECTION HANDLING
+============================================================
+
+If the user selects a range such as:
+
+A1:A100
+
+The add-in must process the whole range.
+
+Supported cell types may include:
+
+- Empty
+- Text
+- Error
+- Number
+
+Only valid numeric cells should be converted.
+
+After batch conversion, optionally show a summary:
+
+Conversion completed.
+
+Converted: 96 cells
+Skipped: 4 cells
+
+
+============================================================
+21. LOCALE AND NUMBER FORMATTING
+============================================================
+
+The add-in must correctly handle numbers regardless of displayed separators.
+
+Examples may include:
+
+1000000
+1,000,000
+1.000.000
+
+Do not blindly remove punctuation.
+
+Prefer the actual numeric value stored by Excel.
+
+The implementation must respect Excel locale behavior whenever possible.
+
+
+============================================================
+22. ERROR HANDLING
+============================================================
+
+The user must never see raw VBA runtime errors during normal usage.
+
+Do not expose messages such as:
+
+Runtime Error 13
+
+Instead display friendly errors.
+
+Example:
+
+Conversion failed
+
+The selected source cell does not contain a valid numeric value.
+
+Errors should be caught and handled gracefully.
+
+
+============================================================
+23. PROJECT ARCHITECTURE
+============================================================
+
+Recommended source structure:
+
+BWPConvertTTNVN/
+
+├── src/
+│
+├── modules/
+│   ├── NumberParser.bas
+│   ├── VietnameseNumber.bas
+│   ├── Currency.bas
+│   ├── CellProcessor.bas
+│   ├── Settings.bas
+│   └── Utils.bas
+│
+├── forms/
+│   ├── frmConvert.frm
+│   ├── frmSettings.frm
+│   └── frmAbout.frm
+│
+├── ribbon/
+│   ├── customUI.xml
+│   └── callbacks.bas
+│
+├── assets/
+│   └── icons/
+│
+├── tests/
+│
+├── docs/
+│
+├── LICENSE
+├── README.md
+└── CHANGELOG.md
+
+
+============================================================
+24. TECHNOLOGY
+============================================================
+
+Preferred technology:
+
+VBA + XLAM
+
+Reasons:
+
+- Good compatibility with Excel for Windows
+- Offline usage
+- No server required
+- No API required
+- Easy to audit
+- Easy to fork
+- Easy to distribute
+
+Do not use:
+
+- Unknown external DLLs
+- External ActiveX dependencies
+- Background executables
+- Internet APIs
+- Telemetry
+- Tracking
+
+
+============================================================
+25. OPEN SOURCE REQUIREMENTS
+============================================================
+
+Recommended license:
+
+MIT License
+
+The repository should contain the full source code.
+
+Requirements:
+
+- No VBA code obfuscation
+- No hidden telemetry
+- No secret network calls
+- No bundled proprietary dependency without documentation
+- No committed secrets
+
+Users and developers must be able to:
+
+- Review
+- Audit
+- Fork
+- Modify
+- Build
+- Redistribute according to the selected license
+
+
+============================================================
+26. PRIVACY REQUIREMENTS
+============================================================
+
+BWPConvertTTNVN must operate entirely offline.
+
+The add-in must not transmit:
+
+- Excel file content
+- Cell values
+- User name
+- Microsoft account data
+- IP address
+- Workbook metadata
+- Usage telemetry
+
+All conversion logic must run locally inside Excel.
+
+
+============================================================
+27. COMPATIBILITY
+============================================================
+
+Minimum preferred support:
+
+Microsoft Excel:
+
+- Excel 2016
+- Excel 2019
+- Excel 2021
+- Microsoft 365
+
+Operating systems:
+
+- Windows 10
+- Windows 11
+
+Architecture:
+
+- 32-bit Office
+- 64-bit Office
+
+Optional support if practical:
+
+- Excel 2010
+- Excel 2013
+
+
+============================================================
+28. INSTALLATION
+============================================================
+
+Primary distribution file:
+
+BWPConvertTTNVN.xlam
+
+Suggested installation steps:
+
+1. Download BWPConvertTTNVN.xlam
+2. Open Excel
+3. Go to:
+   File
+   → Options
+   → Add-ins
+4. Select:
+   Excel Add-ins
+5. Click:
+   Go
+6. Click:
+   Browse
+7. Select:
+   BWPConvertTTNVN.xlam
+8. Enable the add-in
+
+After installation, the Ribbon should display:
+
+BWPConvertTTNVN
+
+
+============================================================
+29. OPTIONAL INSTALLER
+============================================================
+
+Optionally provide:
+
+Install.vbs
+
+or:
+
+Setup.exe
+
+Installer requirements:
+
+- Avoid administrator privileges where possible
+- Do not install external DLLs
+- Only register/copy the XLAM into the proper Excel Add-ins directory
+
+Typical location:
+
+%APPDATA%\Microsoft\AddIns\
+
+
+============================================================
+30. UX REQUIREMENTS
+============================================================
+
+Design principles:
+
+- Simple
+- Minimal
+- Native Excel appearance
+- Clear labels
+- No unnecessary animation
+- No web-app appearance
+- No excessive colors
+- Fast interaction
+- Easy for first-time users
+
+A new user should understand the core workflow in under 10 seconds.
+
+
+============================================================
+31. KEYBOARD SHORTCUT
+============================================================
+
+Optional shortcut:
+
+Ctrl + Shift + V
+
+Possible behavior:
+
+Convert currently selected cells.
+
+If this shortcut conflicts with common Excel behavior or other add-ins, use another combination or omit the feature.
+
+
+============================================================
+32. PERFORMANCE
+============================================================
+
+Performance targets:
+
+1,000 cells:
+Under 1 second if practical.
+
+10,000 cells:
+Under 5 seconds if practical.
+
+During batch processing, the add-in may temporarily disable:
+
+- ScreenUpdating
+- Calculation
+- Events
+
+All Excel application states must be restored afterward, including when an error occurs.
+
+
+============================================================
+33. UNDO BEHAVIOR
+============================================================
+
+VBA actions may interfere with Excel's native Undo history.
+
+If native Undo cannot be preserved, the add-in should:
+
+- Warn users before very large batch changes, or
+- Implement a custom one-level Undo system.
+
+Optional Ribbon button:
+
+Undo Last Conversion
+
+The add-in only needs to remember the most recent conversion operation.
+
+
+============================================================
+34. SOURCE ENGINE
+============================================================
+
+The Vietnamese number-to-words engine may be:
+
+- Implemented from scratch, or
+- Based on compatible open-source code.
+
+If third-party open-source code is reused:
+
+- Verify the license
+- Keep required attribution
+- Document the source
+- Avoid incompatible licenses
+
+Prefer a clean, modular internal implementation when practical.
+
+
+============================================================
+35. REQUIRED TEST CASES
+============================================================
+
+The conversion engine must be tested with at least:
+
+0
+1
+5
+10
+11
+15
+20
+21
+24
+25
+30
+99
+100
+101
+105
+110
+115
+121
+125
+999
+1000
+1001
+1005
+1010
+1100
+10000
+100000
+1000000
+1000001
+1001000
+1050000
+1000000000
+
+Negative values:
+
+-100
+-1000000
+
+Large value:
+
+999999999999999
+
+
+============================================================
+36. EXPECTED OUTPUT EXAMPLES
+============================================================
+
+0
+→ Không đồng.
+
+1
+→ Một đồng.
+
+15
+→ Mười lăm đồng.
+
+21
+→ Hai mươi mốt đồng.
+
+25
+→ Hai mươi lăm đồng.
+
+105
+→ Một trăm lẻ năm đồng.
+
+1,000
+→ Một nghìn đồng.
+
+1,005
+→ Một nghìn không trăm lẻ năm đồng.
+
+1,000,000
+→ Một triệu đồng.
+
+125,430,000
+→ Một trăm hai mươi lăm triệu bốn trăm ba mươi nghìn đồng.
+
+When "chẵn" is enabled:
+
+→ Một trăm hai mươi lăm triệu bốn trăm ba mươi nghìn đồng chẵn.
+
+
+============================================================
+37. ABOUT DIALOG
+============================================================
+
+The About dialog should clearly display:
+
+BWPConvertTTNVN
+
+Vietnamese Number to Words for Microsoft Excel
+
+Version:
+1.0.0
+
+Open Source Software
+
+Works offline.
+No telemetry.
+No external data transmission.
+
+Copyright © 2026 - IT Leon
+
+Optional fields:
+
+- GitHub repository
+- License
+- Build number
+- Project website
+
+
+============================================================
+38. README REQUIREMENTS
+============================================================
+
+README.md should include:
+
+1. Product overview
+2. Screenshot
+3. Features
+4. Installation
+5. Usage
+6. Quick Convert instructions
+7. Formula/UDF reference
+8. Settings reference
+9. Build instructions
+10. Privacy statement
+11. License
+12. Contribution guide
+13. Known limitations
+
+
+============================================================
+39. BUILD PROCESS
+============================================================
+
+Developers must provide reproducible build instructions.
+
+Example:
+
+1. Open Excel.
+2. Create a blank workbook.
+3. Import all .bas modules.
+4. Import all .frm forms.
+5. Add Ribbon XML.
+6. Configure workbook/add-in metadata.
+7. Save as:
+   Excel Add-in (*.xlam)
+8. Test both 32-bit and 64-bit Excel where possible.
+
+Automated build scripts are preferred if practical.
+
+
+============================================================
+40. RELEASE PACKAGE
+============================================================
+
+Suggested GitHub Release package:
+
+BWPConvertTTNVN-v1.0.0.zip
+
+Contents:
+
+├── BWPConvertTTNVN.xlam
+├── Install.vbs
+├── README.pdf
+├── LICENSE.txt
+└── CHANGELOG.txt
+
+
+============================================================
+41. MVP REQUIREMENTS
+============================================================
+
+Version 1.0 must include:
+
+- Custom Excel Ribbon
+- Convert Number to Words button
+- Quick Convert button
+- UserForm
+- Source cell selector
+- Destination cell selector
+- Vietnamese number-to-words engine
+- Vietnamese Dong support
+- Static text output
+- Formula output
+- Batch conversion
+- Settings
+- Excel UDF functions
+- Friendly error handling
+- Offline operation
+- README
+- Open-source source code
+- Build instructions
+- License
+- Copyright notice in the visible interface
+
+
+============================================================
+42. PHASE 2 FEATURES
+============================================================
+
+Potential future features:
+
+Currencies:
+
+- USD
+- EUR
+- JPY
+- CNY
+
+Languages:
+
+- English
+
+Clipboard:
+
+Button:
+Copy Result
+
+Context menu:
+
+Right-click cell
+→ Convert Number to Words
+
+Automatic column mapping:
+
+Example:
+
+Amount
+→ Amount in Words
+
+
+============================================================
+43. PHASE 3 — OFFICE.JS VERSION
+============================================================
+
+If support for Excel Online or macOS becomes necessary, develop a separate Office Add-in using:
+
+- Office.js
+- TypeScript
+
+Recommended architecture:
+
+Shared Number Logic
+        │
+        ├── VBA / XLAM version
+        │
+        └── Office.js version
+
+The first priority remains the Windows XLAM version.
+
+
+============================================================
+44. ACCEPTANCE CRITERIA
+============================================================
+
+AC01
+
+After installing BWPConvertTTNVN.xlam, Excel displays the BWPConvertTTNVN Ribbon tab.
+
+AC02
+
+Selecting a numeric cell and clicking Quick Convert writes Vietnamese words into the configured destination cell.
+
+AC03
+
+Core usage does not require typing formulas.
+
+AC04
+
+Batch conversion works correctly.
+
+AC05
+
+Vietnamese reading rules produce correct output.
+
+AC06
+
+Static Text output remains readable when the workbook is opened on a computer without the add-in.
+
+AC07
+
+No Internet connection is required.
+
+AC08
+
+No external DLL is required.
+
+AC09
+
+No user data is transmitted externally.
+
+AC10
+
+The full source code is available.
+
+AC11
+
+The interface visibly contains:
+
+Copyright © 2026 - IT Leon
+
+AC12
+
+The copyright text is clearly visible in the About dialog and may optionally appear in the main form or Settings footer.
+
+
+============================================================
+45. DEFINITION OF DONE
+============================================================
+
+The project is considered complete only when the following deliverables exist:
+
+Source Code
++
+BWPConvertTTNVN.xlam
++
+Ribbon
++
+UserForms
++
+Vietnamese Number Engine
++
+Batch Conversion
++
+Settings
++
+UDF Functions
++
+Tests
++
+README
++
+Build Guide
++
+License
++
+Release Package
+
+
+============================================================
+46. EXPECTED END-USER EXPERIENCE
+============================================================
+
+A non-technical accounting user should be able to:
+
+1. Install the add-in.
+2. Open Excel.
+3. Select a number.
+4. Click Convert Number to Words.
+5. Select the destination cell.
+6. Click Convert.
+
+The process should require less than 10 seconds after installation.
+
+The user should not need to:
+
+- Know VBA
+- Know programming
+- Open the VBA Editor
+- Understand macros
+- Type formulas
+
+
+============================================================
+47. DEVELOPMENT PRIORITIES
+============================================================
+
+Priority order:
+
+1. Correctness
+2. Ease of use
+3. Security
+4. Compatibility
+5. Performance
+6. Advanced features
+
+Correct Vietnamese number reading is more important than visual complexity.
+
+
+============================================================
+48. PRODUCT POSITIONING
+============================================================
+
+BWPConvertTTNVN should be positioned as:
+
+"A lightweight, open-source, offline Vietnamese number-to-words add-in for Microsoft Excel, designed to provide a simple click-based workflow similar to traditional Vietnamese Excel conversion tools while offering transparent source code, modern compatibility, and easy deployment."
+
+
+============================================================
+49. AI CODING AGENT INSTRUCTION
+============================================================
+
+Use this complete specification to build a production-ready Microsoft Excel VBA Add-in named BWPConvertTTNVN.
+
+Requirements:
+
+- Build a real .xlam add-in.
+- Provide a custom Excel Ribbon.
+- Provide VBA UserForms.
+- Implement a Vietnamese number-to-words engine.
+- Support Quick Convert.
+- Support batch conversion.
+- Support Static Text output.
+- Support Formula output.
+- Provide persistent Settings.
+- Provide worksheet UDF functions.
+- Handle errors gracefully.
+- Do not use external DLLs.
+- Do not use Internet services.
+- Do not collect telemetry.
+- Do not send workbook or cell data externally.
+- Keep all code modular and documented.
+- Support both 32-bit and 64-bit Microsoft Excel where possible.
+- Provide complete source code.
+- Provide Ribbon XML.
+- Provide all VBA modules.
+- Provide all UserForms.
+- Provide tests.
+- Provide build instructions.
+- Provide README documentation.
+
+The default workflow must be:
+
+Select source cell
+→ Click Convert
+→ Select destination cell
+→ Convert
+
+The product should offer a user experience inspired by simple Vietnamese Excel tools such as VNTools, but the implementation must be original and open source.
+
+The UI must clearly display the following text in the About dialog or another highly visible UI location:
+
+Copyright © 2026 - IT Leon
+
+
+============================================================
+50. FINAL EXPECTED RESULT
+============================================================
+
+The user downloads:
+
+BWPConvertTTNVN.xlam
+
+Installs it once.
+
+Excel then provides a dedicated Ribbon tab:
+
+BWPConvertTTNVN
+
+With a primary action such as:
+
+[ 123 → ABC | Convert Number to Words ]
+
+The user selects a numeric cell, clicks the command, and obtains correctly formatted Vietnamese text.
+
+BWPConvertTTNVN should be suitable for:
+
+- Quotations
+- Contracts
+- Receipts
+- Payment vouchers
+- Accounting documents
+- Finance documents
+- Administrative forms
+- HR documents
+- General business spreadsheets
+
+END OF BRIEF
