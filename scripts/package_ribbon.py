@@ -63,9 +63,6 @@ def inject_ribbon(
     temp_packaged = target_xlam.with_name(f"{target_xlam.stem}.tmp_ribbon{target_xlam.suffix}")
     vba_sha256_before: Optional[str] = None
 
-    ET.register_namespace("", RELS_NS)
-    ET.register_namespace("", CONTENT_TYPES_NS)
-
     with zipfile.ZipFile(target_xlam, "r") as zin:
         namelist = zin.namelist()
 
@@ -110,6 +107,7 @@ def inject_ribbon(
                         new_rel.set("Type", CUSTOMUI_REL_TYPE)
                         new_rel.set("Target", CUSTOMUI_TARGET)
 
+                    ET.register_namespace("", RELS_NS)
                     content = (
                         b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
                         + ET.tostring(rels_root, encoding="utf-8")
@@ -131,6 +129,7 @@ def inject_ribbon(
                         new_default.set("Extension", "xml")
                         new_default.set("ContentType", "application/xml")
 
+                    ET.register_namespace("", CONTENT_TYPES_NS)
                     content = (
                         b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
                         + ET.tostring(ct_root, encoding="utf-8")
