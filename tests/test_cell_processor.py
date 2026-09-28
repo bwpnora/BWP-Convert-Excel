@@ -194,7 +194,7 @@ class TestCellProcessorLiveCOM(unittest.TestCase):
         self.assertFalse(success, "Overlapping ranges on same sheet must be rejected")
         self.assertEqual(converted, 0)
         self.assertTrue(
-            "trung" in err_msg.lower() or "de len nhau" in err_msg.lower(),
+            "overlap" in err_msg.lower(),
             f"Expected overlap message, got: {err_msg}",
         )
 
@@ -542,6 +542,40 @@ class TestCellProcessorLiveCOM(unittest.TestCase):
         loaded = self.excel.Run(load_macro)
         saved_version = loaded[16]  # 17th element (index 16) is SettingsVersion
         self.assertEqual(saved_version, 2, f"Expected SettingsVersion=2, got {saved_version}")
+
+    # --------------------------------------------------------------------------
+    # 15. In-Place Conversion and Safe Overlap Guard
+    # --------------------------------------------------------------------------
+
+    def test_in_place_conversion_and_undo(self):
+        """Verify that in-place conversion (source == destination) succeeds and can be undone."""
+        bridge_macro = f"'{self.wb_name}'!CellProcessor.ConvertRangeBridge"
+        undo_macro = f"'{self.wb_name}'!UndoManager.ExecuteUndo"
+        is_undo_avail_macro = f"'{self.wb_name}'!UndoManager.IsUndoAvailable"
+
+        cell = self.ws.Range("A20")
+        cell.Value = 500000
+
+        # In-place conversion
+        res = self.excel.Run(bridge_macro, cell, cell)
+        self.assertTrue(res[0], f"In-place conversion failed: {res[4]}")
+        self.assertEqual(res[1], 1, "Should convert 1 cell")
+        self.assertIn("N\u0103m tr\u0103m ngh\u00ecn", str(cell.Value))
+
+        # Undo in-place conversion
+        self.assertTrue(self.excel.Run(is_undo_avail_macro))
+        self.excel.Run(undo_macro)
+        self.assertEqual(cell.Value, 500000, "Undo must restore original numeric value")
+
+    def test_partial_overlap_still_rejected(self):
+        """Verify that non-identical overlapping ranges are rejected."""
+        bridge_macro = f"'{self.wb_name}'!CellProcessor.ConvertRangeBridge"
+        src = self.ws.Range("A30:B31")
+        dst = self.ws.Range("B31:C32")  # Overlaps B31 but not identical
+
+        res = self.excel.Run(bridge_macro, src, dst)
+        self.assertFalse(res[0], "Partial overlap must be rejected")
+        self.assertIn("overlap", res[5].lower())
 
 
 if __name__ == "__main__":

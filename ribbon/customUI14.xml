@@ -7,7 +7,7 @@
           <button id="btnConvert"
                   label="Đổi số thành chữ"
                   size="large"
-                  imageMso="ChangeTextCase"
+                  imageMso="FunctionsTextInsertGallery"
                   onAction="OnConvertClick"
                   supertip="Mở hộp thoại chuyển đổi số thành chữ tiếng Việt với đầy đủ tùy chọn." />
           <button id="btnQuickConvert"
@@ -15,7 +15,7 @@
                   size="large"
                   imageMso="AutoSum"
                   onAction="OnQuickConvertClick"
-                  supertip="Tự động chuyển đổi số tại vùng chọn sang cột liền kề hoặc dòng dưới." />
+                  supertip="Tự động chuyển đổi số tại ô hoặc vùng chọn thành chữ trực tiếp tại chỗ." />
           <button id="btnUndo"
                   label="Hoàn tác"
                   size="normal"

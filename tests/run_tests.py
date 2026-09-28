@@ -456,10 +456,10 @@ class Tier3ExcelIntegrationTests(unittest.TestCase):
         macro = f"'{self.addin_name}'!RibbonCallbacks.OnQuickConvertClick"
         self.session.excel.Run(macro, self.ws)
 
-        self.assertEqual(self.ws.Range("B1").Value2, "Mười nghìn đồng chẵn.")
-        self.assertEqual(self.ws.Range("B3").Value2, "Ba mươi nghìn đồng chẵn.")
-        self.assertEqual(self.ws.Range("B5").Value2, "Năm mươi nghìn đồng chẵn.")
-        record_result("Tier 3", "Quick Convert via OnQuickConvertClick on 1D range", True, duration=time.time() - t0)
+        self.assertEqual(self.ws.Range("A1").Value2, "Mười nghìn đồng chẵn.")
+        self.assertEqual(self.ws.Range("A3").Value2, "Ba mươi nghìn đồng chẵn.")
+        self.assertEqual(self.ws.Range("A5").Value2, "Năm mươi nghìn đồng chẵn.")
+        record_result("Tier 3", "Quick Convert via OnQuickConvertClick on 1D range (in-place)", True, duration=time.time() - t0)
 
     def test_destination_auto_expansion(self):
         """1D source range auto-expands single anchor cell to matching dimensions."""
@@ -500,7 +500,7 @@ class Tier3ExcelIntegrationTests(unittest.TestCase):
         self.assertEqual(res_overlap[1], 0)
         err_lower = str(res_overlap[5]).lower()
         self.assertTrue(
-            "trung" in err_lower or "de len nhau" in err_lower,
+            "overlap" in err_lower,
             f"Expected overlap error, got: {res_overlap[5]}",
         )
         record_result("Tier 3", "Cross-sheet conversion and same-sheet overlap rejection", True, duration=time.time() - t0)

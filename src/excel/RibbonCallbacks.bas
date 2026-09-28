@@ -49,7 +49,7 @@ End Sub
 Public Sub OnConvertClick(ByVal control As Object)
     On Error Resume Next
     If TypeName(Selection) <> "Range" Then
-        MsgBox "Vui l" & ChrW$(&HF2) & "ng ch" & ChrW$(&H1ECD) & "n m" & ChrW$(&H1ED9) & "t " & ChrW$(&HF4) & " ho" & ChrW$(&H1EA1) & "c v" & ChrW$(&HF9) & "ng d" & ChrW$(&H1EEF) & " li" & ChrW$(&H1EC7) & "u.", vbExclamation, BuildInfo.APP_NAME
+        MsgBox "Please select a cell or data range.", vbExclamation, BuildInfo.APP_NAME
         Exit Sub
     End If
     On Error GoTo 0
@@ -59,7 +59,7 @@ End Sub
 Public Sub OnQuickConvertClick(ByVal control As Object)
     On Error Resume Next
     If TypeName(Selection) <> "Range" Then
-        MsgBox "Vui l" & ChrW$(&HF2) & "ng ch" & ChrW$(&H1ECD) & "n m" & ChrW$(&H1ED9) & "t " & ChrW$(&HF4) & " ho" & ChrW$(&H1EA1) & "c v" & ChrW$(&HF9) & "ng d" & ChrW$(&H1EEF) & " li" & ChrW$(&H1EC7) & "u.", vbExclamation, BuildInfo.APP_NAME
+        MsgBox "Please select a cell or data range.", vbExclamation, BuildInfo.APP_NAME
         Exit Sub
     End If
     
@@ -68,7 +68,7 @@ Public Sub OnQuickConvertClick(ByVal control As Object)
     If srcRng Is Nothing Then Exit Sub
     
     If srcRng.Areas.Count <> 1 Then
-        MsgBox "Kh" & ChrW$(&HF4) & "ng h" & ChrW$(&H1ED7) & " tr" & ChrW$(&H1EE3) & " v" & ChrW$(&HF9) & "ng ch" & ChrW$(&H1ECD) & "n kh" & ChrW$(&HF4) & "ng li" & ChrW$(&HEA) & "n t" & ChrW$(&H1EE5) & "c (multi-area).", vbExclamation, BuildInfo.APP_NAME
+        MsgBox "Multi-area selections are not supported.", vbExclamation, BuildInfo.APP_NAME
         Exit Sub
     End If
     On Error GoTo 0
@@ -81,54 +81,18 @@ Public Sub OnQuickConvertClick(ByVal control As Object)
         Exit Sub
     End If
     
-    ' 1D selection: execute quick conversion
+    ' Quick Convert executes in-place replacement on the selected range
     Dim engOpts As VnEngineOptions
     Dim currOpts As VnCurrencyOptions
     Dim fmtOpts As VnFormatOptions
     Dim appOpts As VnAppSettings
     Settings.LoadAllSettings engOpts, currOpts, fmtOpts, appOpts
     
-    Dim targetDir As VnQuickDirection
-    targetDir = appOpts.QuickConvertDirection
-    
-    If targetDir = VnQuickAuto Then
-        If srcRng.Rows.Count = 1 And srcRng.Columns.Count > 1 Then
-            targetDir = VnQuickBelow
-        Else
-            targetDir = VnQuickRight
-        End If
-    End If
-    
-    Dim ws As Worksheet
-    Set ws = srcRng.Parent
-    
-    Dim srcRows As Long, srcCols As Long
-    srcRows = srcRng.Rows.Count
-    srcCols = srcRng.Columns.Count
+    ' In-place quick conversion requires static text mode (avoiding circular formula references)
+    appOpts.OutputMode = VnOutputStatic
     
     Dim destRng As Range
-    
-    If targetDir = VnQuickRight Then
-        If CLng(srcRng.Column) + srcCols + srcCols - 1 > ws.Columns.Count Then
-            MsgBox "V" & ChrW$(&HF9) & "ng xu" & ChrW$(&H1EA5) & "t k" & ChrW$(&H1EBF) & "t qu" & ChrW$(&H1EA3) & " v" & ChrW$(&H1B0) & ChrW$(&H1EE3) & "t qu" & ChrW$(&HE1) & " gi" & ChrW$(&H1EDB) & "i h" & ChrW$(&H1EA1) & "n c" & ChrW$(&H1EE7) & "a b" & ChrW$(&H1EA3) & "ng t" & ChrW$(&HED) & "nh.", vbExclamation, BuildInfo.APP_NAME
-            Exit Sub
-        End If
-        Set destRng = ws.Cells(srcRng.Row, srcRng.Column + srcCols).Resize(srcRows, srcCols)
-    Else
-        If CLng(srcRng.Row) + srcRows + srcRows - 1 > ws.Rows.Count Then
-            MsgBox "V" & ChrW$(&HF9) & "ng xu" & ChrW$(&H1EA5) & "t k" & ChrW$(&H1EBF) & "t qu" & ChrW$(&H1EA3) & " v" & ChrW$(&H1B0) & ChrW$(&H1EE3) & "t qu" & ChrW$(&HE1) & " gi" & ChrW$(&H1EDB) & "i h" & ChrW$(&H1EA1) & "n c" & ChrW$(&H1EE7) & "a b" & ChrW$(&H1EA3) & "ng t" & ChrW$(&HED) & "nh.", vbExclamation, BuildInfo.APP_NAME
-            Exit Sub
-        End If
-        Set destRng = ws.Cells(srcRng.Row + srcRows, srcRng.Column).Resize(srcRows, srcCols)
-    End If
-    
-    If appOpts.ConfirmOverwrite Then
-        If Application.WorksheetFunction.CountA(destRng) > 0 Then
-            Dim ans As VbMsgBoxResult
-            ans = MsgBox("V" & ChrW$(&HF9) & "ng " & ChrW$(&H111) & ChrW$(&HED) & "ch " & ChrW$(&H111) & ChrW$(&HE3) & " c" & ChrW$(&HF3) & " d" & ChrW$(&H1EEF) & " li" & ChrW$(&H1EC7) & "u. B" & ChrW$(&H1EA1) & "n c" & ChrW$(&HF3) & " ch" & ChrW$(&H1EAF) & "c ch" & ChrW$(&H1EAF) & "n mu" & ChrW$(&H1ED1) & "n ghi " & ChrW$(&H111) & ChrW$(&HE8) & " kh" & ChrW$(&HF4) & "ng?", vbQuestion + vbYesNo + vbDefaultButton2, BuildInfo.APP_NAME)
-            If ans <> vbYes Then Exit Sub
-        End If
-    End If
+    Set destRng = srcRng
     
     Dim batchResult As VnBatchResult
     batchResult = CellProcessor.ConvertRange(srcRng, destRng, engOpts, currOpts, fmtOpts, appOpts)
@@ -141,8 +105,8 @@ Public Sub OnQuickConvertClick(ByVal control As Object)
     InvalidateRibbonControl "btnUndo"
     
     If appOpts.ShowBatchSummary And batchResult.ConvertedCount > 1 Then
-        MsgBox ChrW$(&H110) & ChrW$(&HE3) & " chuy" & ChrW$(&H1EC3) & "n " & ChrW$(&H111) & ChrW$(&H1ED5) & "i th" & ChrW$(&HE0) & "nh c" & ChrW$(&HF4) & "ng " & batchResult.ConvertedCount & " " & ChrW$(&HF4) & "." & _
-               IIf(batchResult.SkippedCount > 0, vbCrLf & "B" & ChrW$(&H1ECF) & " qua: " & batchResult.SkippedCount & " " & ChrW$(&HF4) & ".", ""), _
+        MsgBox "Successfully converted " & batchResult.ConvertedCount & " cell(s)." & _
+               IIf(batchResult.SkippedCount > 0, vbCrLf & "Skipped: " & batchResult.SkippedCount & " cell(s).", ""), _
                vbInformation, BuildInfo.APP_NAME
     End If
 End Sub

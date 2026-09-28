@@ -31,8 +31,8 @@ Private Sub UserForm_Initialize()
 End Sub
 
 Public Sub PopulateCaptions()
-    ' Title: GIOI THIEU - BWPConvertTTNVN
-    Me.Caption = "GI" & ChrW$(&H1EDA) & "I THI" & ChrW$(&H1EC6) & "U - " & BuildInfo.APP_NAME
+    ' Title: About
+    Me.Caption = "About"
     
     lblAppName.Caption = BuildInfo.APP_NAME
     lblVersion.Caption = "Phi" & ChrW$(&HEA) & "n b" & ChrW$(&H1EA3) & "n " & BuildInfo.APP_VERSION
@@ -50,7 +50,7 @@ Public Sub PopulateCaptions()
 End Sub
 
 Public Property Get TitleText() As String
-    TitleText = "GI" & ChrW$(&H1EDA) & "I THI" & ChrW$(&H1EC6) & "U - " & BuildInfo.APP_NAME
+    TitleText = "About"
 End Property
 
 Public Property Get AppNameText() As String

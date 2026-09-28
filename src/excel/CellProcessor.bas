@@ -67,19 +67,19 @@ Public Function ConvertRange( _
 
     ' 2. Validate range objects exist
     If SourceRange Is Nothing Or DestinationRange Is Nothing Then
-        result.ErrorMessage = "Vung du lieu nguon hoac dich khong hop le."
+        result.ErrorMessage = "Invalid source or destination data range."
         GoTo Cleanup
     End If
 
     ' 3. Validate single contiguous area (no multi-area selections)
     If SourceRange.Areas.Count <> 1 Or DestinationRange.Areas.Count <> 1 Then
-        result.ErrorMessage = "Khong ho tro vung chon khong lien tuc (multi-area)."
+        result.ErrorMessage = "Multi-area selections are not supported."
         GoTo Cleanup
     End If
 
     ' 4. Validate same workbook
     If Not (SourceRange.Parent.Parent Is DestinationRange.Parent.Parent) Then
-        result.ErrorMessage = "Vung nguon va vung dich phai thuoc cung mot workbook."
+        result.ErrorMessage = "Source and destination ranges must belong to the same workbook."
         GoTo Cleanup
     End If
 
@@ -104,7 +104,7 @@ Public Function ConvertRange( _
         ' Single anchor cell -> automatically expands to match source dimensions
         If (destStartRow + srcRows - 1 > destWs.Rows.Count) Or _
            (destStartCol + srcCols - 1 > destWs.Columns.Count) Then
-            result.ErrorMessage = "Vung dich vuot qua gioi han kich thuoc cua worksheet."
+            result.ErrorMessage = "Destination range exceeds worksheet boundaries."
             GoTo Cleanup
         End If
         Set destExpanded = destWs.Range( _
@@ -114,23 +114,30 @@ Public Function ConvertRange( _
     Else
         ' Multi-cell destination must match source rows and columns exactly
         If destRows <> srcRows Or destCols <> srcCols Then
-            result.ErrorMessage = "Kich thuoc vung dich khong khop voi vung nguon."
+            result.ErrorMessage = "Destination range dimensions do not match source range."
             GoTo Cleanup
         End If
         Set destExpanded = DestinationRange
     End If
 
-    ' 6. Cross-sheet safe overlap check
+    ' 6. Cross-sheet safe overlap check (allows exact in-place conversion)
     Dim sameSheet As Boolean
     sameSheet = (SourceRange.Parent Is destWs)
 
+    Dim isSameRange As Boolean
+    isSameRange = False
+
     If sameSheet Then
-        Dim isect As Range
-        Set isect = Nothing
-        Set isect = Application.Intersect(SourceRange, destExpanded)
-        If Not (isect Is Nothing) Then
-            result.ErrorMessage = "Vung nguon va vung dich bi trung hoac de len nhau tren cung sheet."
-            GoTo Cleanup
+        If SourceRange.Address = destExpanded.Address Then
+            isSameRange = True
+        Else
+            Dim isect As Range
+            Set isect = Nothing
+            Set isect = Application.Intersect(SourceRange, destExpanded)
+            If Not (isect Is Nothing) Then
+                result.ErrorMessage = "Source and destination ranges cannot overlap on the same sheet."
+                GoTo Cleanup
+            End If
         End If
     End If
 
@@ -154,7 +161,7 @@ Public Function ConvertRange( _
         End If
         
         If srcMerged Or destMerged Then
-            result.ErrorMessage = "Khong ho tro chuyen doi hang loat tren vung co o bi tron (merged cells)."
+            result.ErrorMessage = "Batch conversion is not supported on merged cells."
             GoTo Cleanup
         End If
     End If
@@ -164,21 +171,25 @@ Public Function ConvertRange( _
         Dim destLocked As Variant
         destLocked = destExpanded.Locked
         If IsNull(destLocked) Then
-            result.ErrorMessage = "Worksheet dich bi khoa va co chua o bi khoa."
+            result.ErrorMessage = "Destination worksheet is protected and contains locked cells."
             GoTo Cleanup
         ElseIf CBool(destLocked) Then
-            result.ErrorMessage = "Worksheet dich bi khoa va vung dich bi khoa."
+            result.ErrorMessage = "Destination worksheet is protected and destination range is locked."
             GoTo Cleanup
         End If
     End If
 
-    ' 9. Formula mode validation: reject USD and Custom currency
+    ' 9. Formula mode validation: reject USD, Custom currency, and in-place conversion
     Dim isFormulaMode As Boolean
     isFormulaMode = (AppOpts.OutputMode = VnOutputFormula)
 
     If isFormulaMode Then
+        If isSameRange Then
+            result.ErrorMessage = "Formula mode cannot be used for in-place conversion."
+            GoTo Cleanup
+        End If
         If CurrOpts.CurrencyType = VnCurrUSD Or CurrOpts.CurrencyType = VnCurrCustom Then
-            result.ErrorMessage = "Che do cong thuc khong ho tro loai tien te USD hoac tuy chinh."
+            result.ErrorMessage = "Formula mode does not support USD or custom currency."
             GoTo Cleanup
         End If
     End If
@@ -313,7 +324,7 @@ ErrorHandler:
     result.Success = False
     result.ErrorMessage = Err.Description
     If Len(result.ErrorMessage) = 0 Then
-        result.ErrorMessage = "Loi xu ly CellProcessor: " & CStr(Err.Number)
+        result.ErrorMessage = "CellProcessor error: " & CStr(Err.Number)
     End If
     UndoManager.DiscardStagedSnapshot
     Resume Cleanup

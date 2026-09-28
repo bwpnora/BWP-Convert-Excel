@@ -96,7 +96,7 @@ Public Property Let OutputModeValue(ByVal val As Long)
 End Property
 
 Public Property Get TitleText() As String
-    TitleText = ChrW$(&H0110) & ChrW$(&H1ED4) & "I S" & ChrW$(&H1ED0) & " TH" & ChrW$(&H00C0) & "NH CH" & ChrW$(&H1EEE) & " TI" & ChrW$(&H1EBE) & "NG VI" & ChrW$(&H1EC6) & "T"
+    TitleText = "BWPConvertTTNVN"
 End Property
 
 Public Property Get CopyrightText() As String
@@ -131,8 +131,8 @@ Private Sub UserForm_Initialize()
 End Sub
 
 Public Sub PopulateCaptions()
-    ' Title: DOI SO THANH CHU TIENG VIET
-    Me.Caption = ChrW$(&H110) & ChrW$(&H1ED4) & "I S" & ChrW$(&H1ED0) & " TH" & ChrW$(&HC0) & "NH CH" & ChrW$(&H1EEE) & " TI" & ChrW$(&H1EBE) & "NG VI" & ChrW$(&H1EC6) & "T"
+    ' Title: BWPConvertTTNVN
+    Me.Caption = "BWPConvertTTNVN"
     
     lblSourceRange.Caption = "V" & ChrW$(&HF9) & "ng d" & ChrW$(&H1EEF) & " li" & ChrW$(&H1EC7) & "u ngu" & ChrW$(&H1ED3) & "n (ch" & ChrW$(&H1EE9) & "a s" & ChrW$(&H1ED1) & "):"
     btnSelectSource.Caption = "Ch" & ChrW$(&H1ECD) & "n..."
@@ -276,7 +276,7 @@ Private Sub btnSelectSource_Click()
             Set mSourceRange = picked
             txtSourceRange.Text = GetQualifiedAddress(picked)
         Else
-            MsgBox "V" & ChrW$(&HF9) & "ng ch" & ChrW$(&H1ECD) & "n ph" & ChrW$(&H1EA3) & "i thu" & ChrW$(&H1ED9) & "c c" & ChrW$(&HF9) & "ng workbook hi" & ChrW$(&H1EC7) & "n t" & ChrW$(&H1EA1) & "i.", vbExclamation, BuildInfo.APP_NAME
+            MsgBox "Selected range must belong to the active workbook.", vbExclamation, BuildInfo.APP_NAME
         End If
     End If
     
@@ -295,8 +295,8 @@ Private Sub btnSelectDest_Click()
     Me.Hide
     On Error Resume Next
     Set picked = Application.InputBox( _
-        Prompt:="Ch" & ChrW$(&H1ECD) & "n " & ChrW$(&HF4) & " ho" & ChrW$(&H1EA1) & "c v" & ChrW$(&HF9) & "ng xu" & ChrW$(&H1EA5) & "t k" & ChrW$(&H1EBF) & "t qu" & ChrW$(&H1EA3) & ":", _
-        Title:="Ch" & ChrW$(&H1ECD) & "n v" & ChrW$(&HF9) & "ng " & ChrW$(&H111) & ChrW$(&HED) & "ch", _
+        Prompt:="Select output destination cell or range:", _
+        Title:="Select Destination", _
         Default:=defaultAddr, _
         Type:=8 _
     )
@@ -310,7 +310,7 @@ Private Sub btnSelectDest_Click()
             Set mDestinationRange = picked
             txtDestRange.Text = GetQualifiedAddress(picked)
         Else
-            MsgBox "V" & ChrW$(&HF9) & "ng ch" & ChrW$(&H1ECD) & "n ph" & ChrW$(&H1EA3) & "i thu" & ChrW$(&H1ED9) & "c c" & ChrW$(&HF9) & "ng workbook hi" & ChrW$(&H1EC7) & "n t" & ChrW$(&H1EA1) & "i.", vbExclamation, BuildInfo.APP_NAME
+            MsgBox "Selected range must belong to the active workbook.", vbExclamation, BuildInfo.APP_NAME
         End If
     End If
     
@@ -355,28 +355,28 @@ Public Function ExecuteConversion(Optional ByVal SuppressPrompts As Boolean = Fa
     
     If mSourceRange Is Nothing Then
         If Not SuppressPrompts Then
-            MsgBox "Vui l" & ChrW$(&HF2) & "ng ch" & ChrW$(&H1ECD) & "n v" & ChrW$(&HF9) & "ng d" & ChrW$(&H1EEF) & " li" & ChrW$(&H1EC7) & "u ngu" & ChrW$(&H1ED3) & "n.", vbExclamation, BuildInfo.APP_NAME
+            MsgBox "Please select a source data range.", vbExclamation, BuildInfo.APP_NAME
         End If
         Exit Function
     End If
     
     If mDestinationRange Is Nothing Then
         If Not SuppressPrompts Then
-            MsgBox "Vui l" & ChrW$(&HF2) & "ng ch" & ChrW$(&H1ECD) & "n v" & ChrW$(&HF9) & "ng xu" & ChrW$(&H1EA5) & "t k" & ChrW$(&H1EBF) & "t qu" & ChrW$(&H1EA3) & ".", vbExclamation, BuildInfo.APP_NAME
+            MsgBox "Please select a destination output range.", vbExclamation, BuildInfo.APP_NAME
         End If
         Exit Function
     End If
     
     If mSourceRange.Areas.Count <> 1 Or mDestinationRange.Areas.Count <> 1 Then
         If Not SuppressPrompts Then
-            MsgBox "Kh" & ChrW$(&HF4) & "ng h" & ChrW$(&H1ED7) & " tr" & ChrW$(&H1EE3) & " v" & ChrW$(&HF9) & "ng ch" & ChrW$(&H1ECD) & "n kh" & ChrW$(&HF4) & "ng li" & ChrW$(&HEA) & "n t" & ChrW$(&H1EE5) & "c (multi-area).", vbExclamation, BuildInfo.APP_NAME
+            MsgBox "Multi-area selections are not supported.", vbExclamation, BuildInfo.APP_NAME
         End If
         Exit Function
     End If
     
     If Not (mSourceRange.Parent.Parent Is mDestinationRange.Parent.Parent) Then
         If Not SuppressPrompts Then
-            MsgBox "V" & ChrW$(&HF9) & "ng ngu" & ChrW$(&H1ED3) & "n v" & ChrW$(&HE0) & " v" & ChrW$(&HF9) & "ng " & ChrW$(&H111) & ChrW$(&HED) & "ch ph" & ChrW$(&H1EA3) & "i thu" & ChrW$(&H1ED9) & "c c" & ChrW$(&HF9) & "ng m" & ChrW$(&H1ED9) & "t workbook.", vbExclamation, BuildInfo.APP_NAME
+            MsgBox "Source and destination ranges must belong to the same workbook.", vbExclamation, BuildInfo.APP_NAME
         End If
         Exit Function
     End If
@@ -388,11 +388,13 @@ Public Function ExecuteConversion(Optional ByVal SuppressPrompts As Boolean = Fa
         Else
             Set destExp = mDestinationRange
         End If
-        If Not Application.Intersect(mSourceRange, destExp) Is Nothing Then
-            If Not SuppressPrompts Then
-                MsgBox "V" & ChrW$(&HF9) & "ng ngu" & ChrW$(&H1ED3) & "n v" & ChrW$(&HE0) & " v" & ChrW$(&HF9) & "ng " & ChrW$(&H111) & ChrW$(&HED) & "ch kh" & ChrW$(&HF4) & "ng " & ChrW$(&H111) & ChrW$(&H1B0) & ChrW$(&H1EE3) & "c " & ChrW$(&H111) & ChrW$(&HE8) & " l" & ChrW$(&HEA) & "n nhau tr" & ChrW$(&HEA) & "n c" & ChrW$(&HF9) & "ng m" & ChrW$(&H1ED9) & "t sheet.", vbCritical, BuildInfo.APP_NAME
+        If mSourceRange.Address <> destExp.Address Then
+            If Not Application.Intersect(mSourceRange, destExp) Is Nothing Then
+                If Not SuppressPrompts Then
+                    MsgBox "Source and destination ranges cannot overlap on the same sheet.", vbCritical, BuildInfo.APP_NAME
+                End If
+                Exit Function
             End If
-            Exit Function
         End If
     End If
     
@@ -407,7 +409,7 @@ Public Function ExecuteConversion(Optional ByVal SuppressPrompts As Boolean = Fa
         For Each checkCell In destCheckRange.Cells
             If checkCell.Locked Then
                 If Not SuppressPrompts Then
-                    MsgBox "V" & ChrW$(&HF9) & "ng " & ChrW$(&H111) & ChrW$(&HED) & "ch ch" & ChrW$(&H1EE9) & "a " & ChrW$(&HF4) & " b" & ChrW$(&H1ECB) & " kh" & ChrW$(&HF3) & "a tr" & ChrW$(&HEA) & "n sheet " & ChrW$(&H111) & ChrW$(&H1B0) & ChrW$(&H1EE3) & "c b" & ChrW$(&H1EA3) & "o v" & ChrW$(&H1EC7) & ".", vbCritical, BuildInfo.APP_NAME
+                    MsgBox "Destination range contains locked cells on a protected sheet.", vbCritical, BuildInfo.APP_NAME
                 End If
                 Exit Function
             End If
@@ -456,7 +458,7 @@ Public Function ExecuteConversion(Optional ByVal SuppressPrompts As Boolean = Fa
         End If
         If Application.WorksheetFunction.CountA(targetArea) > 0 Then
             Dim ans As VbMsgBoxResult
-            ans = MsgBox("V" & ChrW$(&HF9) & "ng " & ChrW$(&H111) & ChrW$(&HED) & "ch " & ChrW$(&H111) & ChrW$(&HE3) & " c" & ChrW$(&HF3) & " d" & ChrW$(&H1EEF) & " li" & ChrW$(&H1EC7) & "u. B" & ChrW$(&H1EA1) & "n c" & ChrW$(&HF3) & " ch" & ChrW$(&H1EAF) & "c ch" & ChrW$(&H1EAF) & "n mu" & ChrW$(&H1ED1) & "n ghi " & ChrW$(&H111) & ChrW$(&HE8) & " kh" & ChrW$(&HF4) & "ng?", vbQuestion + vbYesNo + vbDefaultButton2, BuildInfo.APP_NAME)
+            ans = MsgBox("The destination range already contains data. Do you want to overwrite it?", vbQuestion + vbYesNo + vbDefaultButton2, BuildInfo.APP_NAME)
             If ans <> vbYes Then Exit Function
         End If
     End If
@@ -475,8 +477,8 @@ Public Function ExecuteConversion(Optional ByVal SuppressPrompts As Boolean = Fa
     On Error GoTo 0
     
     If appOpts.ShowBatchSummary And mBatchResult.convertedCount > 1 And Not SuppressPrompts Then
-        MsgBox ChrW$(&H110) & ChrW$(&HE3) & " chuy" & ChrW$(&H1EC3) & "n " & ChrW$(&H111) & ChrW$(&H1ED5) & "i th" & ChrW$(&HE0) & "nh c" & ChrW$(&HF4) & "ng " & mBatchResult.convertedCount & " " & ChrW$(&HF4) & "." & _
-               IIf(mBatchResult.skippedCount > 0, vbCrLf & "B" & ChrW$(&H1ECF) & " qua: " & mBatchResult.skippedCount & " " & ChrW$(&HF4) & ".", ""), _
+        MsgBox "Successfully converted " & mBatchResult.convertedCount & " cell(s)." & _
+               IIf(mBatchResult.skippedCount > 0, vbCrLf & "Skipped: " & mBatchResult.skippedCount & " cell(s).", ""), _
                vbInformation, BuildInfo.APP_NAME
     End If
     

@@ -329,9 +329,9 @@ End Function
         res = self.excel.Run(f"'{self.wb_name}'!TestAboutForm")
         title_text, app_name, version, copyright_text, bullets, close_btn, raw_caption = res
         
-        # Form title: GIỚI THIỆU - BWPConvertTTNVN
-        self.assertEqual(title_text, "GI\u1edaI THI\u1ec6U - BWPConvertTTNVN")
-        self.assertIn("BWPConvertTTNVN", raw_caption)
+        # Form title: About
+        self.assertEqual(title_text, "About")
+        self.assertIn("About", raw_caption)
         
         # App Name & Version
         self.assertEqual(app_name, "BWPConvertTTNVN")
@@ -362,8 +362,8 @@ End Function
             out_mode, quick_dir, confirm_ow, show_summary
         ) = res
         
-        # Title: CÀI ĐẶT
-        self.assertEqual(title_text, "C\u00c0I \u0110\u1eb6T")
+        # Title: Settings
+        self.assertEqual(title_text, "Settings")
         
         # Factory defaults
         self.assertEqual(zero_style, 0)       # optZeroLe ("lẻ")
@@ -396,8 +396,8 @@ End Function
         res = self.excel.Run(f"'{self.wb_name}'!TestConvertFormInit")
         title_text, copyright_text, curr_idx, casing_idx, formula_enabled, add_dong, add_chan = res
         
-        # Title: ĐỔI SỐ THÀNH CHỮ TIẾNG VIỆT
-        self.assertEqual(title_text, "\u0110\u1ed4I S\u1ed0 TH\u00c0NH CH\u1eee TI\u1ebeNG VI\u1ec6T")
+        # Title: BWPConvertTTNVN
+        self.assertEqual(title_text, "BWPConvertTTNVN")
         
         # Mandatory copyright notice: Copyright © 2026 - IT Leon
         self.assertEqual(copyright_text.replace("\u00c2", ""), EXPECTED_COPYRIGHT)

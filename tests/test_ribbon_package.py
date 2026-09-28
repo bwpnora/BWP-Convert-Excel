@@ -90,7 +90,7 @@ class TestRibbonXmlContract(unittest.TestCase):
         self.assertIsNotNone(btn_convert)
         self.assertEqual(btn_convert.attrib.get("label"), "Đổi số thành chữ")
         self.assertEqual(btn_convert.attrib.get("size"), "large")
-        self.assertEqual(btn_convert.attrib.get("imageMso"), "ChangeTextCase")
+        self.assertEqual(btn_convert.attrib.get("imageMso"), "FunctionsTextInsertGallery")
         self.assertEqual(btn_convert.attrib.get("onAction"), "OnConvertClick")
 
         btn_quick = grp_conv.find("ns:button[@id='btnQuickConvert']", ns)

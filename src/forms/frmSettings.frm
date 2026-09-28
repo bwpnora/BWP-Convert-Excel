@@ -43,8 +43,8 @@ Private Sub UserForm_Initialize()
 End Sub
 
 Public Sub PopulateCaptions()
-    ' Title: CAI DAT
-    Me.Caption = "C" & ChrW$(&HC0) & "I " & ChrW$(&H110) & ChrW$(&H1EB6) & "T"
+    ' Title: Settings
+    Me.Caption = "Settings"
     
     ' Grammar frame
     fraGrammar.Caption = "Quy t" & ChrW$(&H1EAF) & "c ng" & ChrW$(&H1EEF) & " ph" & ChrW$(&HE1) & "p"
@@ -244,7 +244,7 @@ Public Property Get ZeroStyleValue() As Long
 End Property
 
 Public Property Get TitleText() As String
-    TitleText = "C" & ChrW$(&H00C0) & "I " & ChrW$(&H0110) & ChrW$(&H1EB6) & "T"
+    TitleText = "Settings"
 End Property
 
 Public Property Let ZeroStyleValue(ByVal val As Long)
