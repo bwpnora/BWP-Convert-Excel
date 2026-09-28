@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<customUI xmlns="http://schemas.microsoft.com/office/2009/07/customui" onLoad="OnRibbonLoad">
+  <ribbon>
+    <tabs>
+      <tab id="tabBWPConvert" label="BWPConvertTTNVN" keytip="B">
+        <group id="grpConversion" label="Chuyển đổi số">
+          <button id="btnConvert"
+                  label="Đổi số thành chữ"
+                  size="large"
+                  imageMso="ChangeTextCase"
+                  onAction="OnConvertClick"
+                  supertip="Mở hộp thoại chuyển đổi số thành chữ tiếng Việt với đầy đủ tùy chọn." />
+          <button id="btnQuickConvert"
+                  label="Chuyển nhanh"
+                  size="large"
+                  imageMso="AutoSum"
+                  onAction="OnQuickConvertClick"
+                  supertip="Tự động chuyển đổi số tại vùng chọn sang cột liền kề hoặc dòng dưới." />
+          <button id="btnUndo"
+                  label="Hoàn tác"
+                  size="normal"
+                  imageMso="Undo"
+                  onAction="OnUndoClick"
+                  getEnabled="GetUndoEnabled"
+                  supertip="Khôi phục lại dữ liệu trước lần chuyển đổi gần nhất." />
+        </group>
+        <group id="grpSettings" label="Hệ thống">
+          <button id="btnSettings"
+                  label="Cài đặt"
+                  size="normal"
+                  imageMso="ControlProperties"
+                  onAction="OnSettingsClick"
+                  supertip="Tùy chỉnh quy tắc đọc số, hướng chuyển nhanh và định dạng." />
+          <button id="btnAbout"
+                  label="Giới thiệu"
+                  size="normal"
+                  imageMso="Info"
+                  onAction="OnAboutClick"
+                  supertip="Thông tin phiên bản, bản quyền và giấy phép mã nguồn mở." />
+        </group>
+      </tab>
+    </tabs>
+  </ribbon>
+</customUI>
