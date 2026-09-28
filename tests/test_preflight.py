@@ -56,7 +56,8 @@ class TestPreflight(unittest.TestCase):
         self.assertIn('Option Explicit', content)
         self.assertIn(f'Public Const APP_NAME As String = "{APP_NAME}"', content)
         self.assertIn('Public Const APP_VERSION As String = "1.0.0"', content)
-        self.assertIn(f'Public Const APP_COPYRIGHT As String = "{APP_COPYRIGHT}"', content)
+        self.assertIn('Public Property Get APP_COPYRIGHT() As String', content)
+        self.assertIn('ChrW$(&HA9)', content)
 
     def test_generate_build_info_function(self):
         """Verify generate_build_info regenerates file with custom version accurately."""
@@ -67,7 +68,8 @@ class TestPreflight(unittest.TestCase):
             content = out.read_text(encoding="utf-8")
             self.assertIn('Public Const APP_VERSION As String = "1.2.3"', content)
             self.assertIn(f'Public Const APP_NAME As String = "{APP_NAME}"', content)
-            self.assertIn(f'Public Const APP_COPYRIGHT As String = "{APP_COPYRIGHT}"', content)
+            self.assertIn('Public Property Get APP_COPYRIGHT() As String', content)
+            self.assertIn('ChrW$(&HA9)', content)
 
     def test_excel_pid_tracking_and_cleanup(self):
         """

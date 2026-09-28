@@ -124,10 +124,13 @@ def generate_build_info(
         "\n"
         f'Public Const APP_NAME As String = "{APP_NAME}"\n'
         f'Public Const APP_VERSION As String = "{version_str}"\n'
-        f'Public Const APP_COPYRIGHT As String = "{APP_COPYRIGHT}"\n'
+        "\n"
+        "Public Property Get APP_COPYRIGHT() As String\n"
+        '    APP_COPYRIGHT = "Copyright " & ChrW$(&HA9) & " 2026 - IT Leon"\n'
+        "End Property\n"
     )
 
-    target.write_text(content, encoding="utf-8")
+    target.write_text(content, encoding="ascii")
     return target
 
 
