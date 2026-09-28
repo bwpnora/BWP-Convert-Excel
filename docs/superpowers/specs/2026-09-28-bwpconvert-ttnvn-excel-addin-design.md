@@ -19,6 +19,7 @@
 4. **VBA Engine as Single Source of Truth**: External tooling (Python/PowerShell) exists solely for build orchestration and test automation via Excel COM, never duplicating conversion logic.
 5. **Excel Application State Safety**: Flawless caching and restoration of Excel runtime states (`ScreenUpdating`, `Calculation`, `EnableEvents`, `DisplayAlerts`, `StatusBar`) across all execution and error paths.
 6. **Mandatory Interface Notice**: Product UI visibly displays `Copyright © 2026 - IT Leon` in the About dialog (`frmAbout`) and main conversion footer (`frmConvert`).
+7. **Cross-Locale Source Encoding Safety**: Core Vietnamese vocabulary and runtime captions are constructed with Unicode codepoints (`ChrW$()`) to guarantee 100% identical compilation and rendering across any Windows system ANSI code page.
 
 ---
 
@@ -35,13 +36,15 @@ BWPConvertTTNVN/
 ├── src/
 │   ├── core/                             # Pure VBA: zero Excel dependencies, zero UI
 │   │   ├── CoreTypes.bas                 # Constants, Enums, UDTs, error codes, option factories
+│   │   ├── UnicodeText.bas               # ChrW$() Vietnamese vocabulary & Unicode case tables
 │   │   ├── VietnameseNumber.bas          # Algorithmic number-to-words reading engine
 │   │   ├── Currency.bas                  # Currency composition, sub-units, "chẵn" handling
-│   │   ├── TextFormatter.bas             # Pure VBA Unicode casing, whitespace, punctuation
+│   │   ├── TextFormatter.bas             # Whitespace normalization, Unicode casing, punctuation
 │   │   └── CoreCoordinator.bas           # Unified entry point pipeline (Simple & Advanced APIs)
 │   │
 │   ├── excel/                            # Excel object model integration
-│   │   ├── CellProcessor.bas             # Range & batch engine, state cache, bulk arrays
+│   │   ├── BuildInfo.bas                 # Auto-generated from VERSION during build
+│   │   ├── CellProcessor.bas             # Range & batch engine, state cache, safe block writes
 │   │   ├── UDF.bas                       # Worksheet functions (=BWPVNWORDS, =BWPVND, =BWPVNDUPPER)
 │   │   ├── Settings.bas                  # Registry persistence (HKCU) with versioning & reset
 │   │   ├── UndoManager.bas               # 2-phase 1-level transactional Undo (max 10,000 cells)
@@ -57,7 +60,7 @@ BWPConvertTTNVN/
 │
 ├── ribbon/
 │   ├── customUI14.xml                    # Office 2010+ Ribbon XML definition
-│   └── icons/                            # Optional custom assets (built-in imageMso prioritized)
+│   └── icons/                            # Built-in imageMso prioritized (crisp across DPI)
 │
 ├── tests/
 │   ├── test_engine.bas                   # In-VBA automated test runner
@@ -71,7 +74,7 @@ BWPConvertTTNVN/
 │   └── clean.ps1                         # Safe cleanup targeting only build-owned PIDs
 │
 ├── installer/
-│   └── Install.vbs                       # Double-clickable no-admin installer with MOTW removal
+│   └── Install.vbs                       # Double-clickable installer (SHA-256 verify + MOTW removal)
 │
 ├── dist/                                 # Build distribution outputs
 │   ├── BWPConvertTTNVN.xlam              # Compiled Excel Add-in
@@ -85,9 +88,17 @@ BWPConvertTTNVN/
 
 ---
 
-## 3. Vietnamese Number-Reading Rules & Grammar
+## 3. Vietnamese Number-Reading Rules & Source Encoding Strategy
 
-### 3.1 Vocabulary & Grammar Toggles
+### 3.1 VBA Source Encoding Strategy (`UnicodeText.bas`)
+* **Problem**: Standard VBA `.bas` and `.frm` files are stored in local ANSI code pages. When opened or imported on a machine with a different Windows system locale (e.g. Code Page 1252 Western Europe/US vs 1258 Vietnam), non-ASCII characters in source files become corrupted (e.g. `đồng` becomes `®ång`).
+* **Architecture Solution**:
+  * All critical Vietnamese words, scale terms, and character transformation tables are isolated in `src/core/UnicodeText.bas` and generated programmatically via `ChrW$(&H...)` code points.
+  * UserForm captions and button texts in `frmConvert`, `frmSettings`, and `frmAbout` are assigned dynamically during `UserForm_Initialize` using `UnicodeText` helper properties, preventing `.frm` designer code page corruption.
+  * Ribbon XML (`customUI14.xml`), `expected_cases.csv`, and documentation files remain clean UTF-8.
+  * A mandatory build smoke test verifies that core words (`Một`, `đồng`, `chẵn`, `nghìn`, `tỷ`, `lẻ`, `mốt`, `tư`) match expected UTF-16 code sequences.
+
+### 3.2 Vocabulary & Grammar Toggles
 * **Digits (0–9)**: `không`, `một`, `hai`, `ba`, `bốn`, `năm`, `sáu`, `bảy`, `tám`, `chín`.
 * **Zero / Linking Word (`VnZeroStyle`)**:
   * `VnZeroLe = 0` (Default): `"lẻ"` (e.g. *một trăm lẻ năm*).
@@ -106,7 +117,7 @@ BWPConvertTTNVN/
   * `c_unit = 1` and tens $\ge 2$: `"mốt"` (e.g. `21` $\rightarrow$ *hai mươi mốt*, `121` $\rightarrow$ *một trăm hai mươi mốt*).
   * `c_unit = 1` and tens $< 2$: `"một"` (e.g. `1` $\rightarrow$ *một*, `11` $\rightarrow$ *mười một*, `101` $\rightarrow$ *một trăm lẻ một*).
 
-### 3.2 Scales & Triplet Grammar
+### 3.3 Scales & Triplet Grammar
 * **Supported Scales for MVP**:
   * $10^0$: Units
   * $10^3$: `nghìn` / `ngàn`
@@ -128,7 +139,7 @@ BWPConvertTTNVN/
     * Triplet `000` in the middle of a number is omitted from speech, but triggers `forceFullTriplet = True` for subsequent non-zero triplets.
     * Triplet `000` at the end of a number produces no speech (e.g. `1,000,000` $\rightarrow$ *một triệu*).
 
-### 3.3 Decimal Handling
+### 3.4 Decimal Handling
 * **Mode 1: Truncate toward zero (`VnDecimalIgnore`)**:
   * Uses VBA `Fix()` behavior (truncation toward zero), not mathematical floor `Int()`.
   * For positive numbers: `Fix(125.9) = 125`.
@@ -137,7 +148,7 @@ BWPConvertTTNVN/
 * **Mode 2: Read decimal digits (`VnDecimalDigits`)**:
   * Reads integer part, appends `"phẩy"`, then reads each decimal digit individually (e.g. `125.05` $\rightarrow$ *một trăm hai mươi lăm phẩy không năm*).
 * **Mode 3: Currency sub-units**:
-  * Governed by currency configuration. Fractional remainder is rounded using half-away-from-zero logic to `CustomDecimals`.
+  * Governed by currency configuration. Fractional remainder is rounded using half-away-from-zero logic to `DecimalPlaces`.
 
 ---
 
@@ -201,10 +212,10 @@ End Type
 Public Type VnCurrencyOptions
     CurrencyType As VnCurrencyType
     AddChan As Boolean
+    DecimalPlaces As Integer
     CustomPrefix As String
     CustomSuffix As String
     CustomSubUnit As String
-    CustomDecimals As Integer
 End Type
 
 Public Type VnFormatOptions
@@ -230,11 +241,11 @@ Public Function DefaultCurrencyOptions( _
     Opts.AddChan = True
     Select Case CurrencyType
         Case VnCurrVND
-            Opts.CustomDecimals = 0
+            Opts.DecimalPlaces = 0
         Case VnCurrUSD
-            Opts.CustomDecimals = 2
+            Opts.DecimalPlaces = 2
         Case Else
-            Opts.CustomDecimals = 0
+            Opts.DecimalPlaces = 0
     End Select
     DefaultCurrencyOptions = Opts
 End Function
@@ -247,18 +258,21 @@ Public Function DefaultFormatOptions() As VnFormatOptions
 End Function
 ```
 
-### 4.2 `VietnameseNumber.bas`
+### 4.2 `UnicodeText.bas`
+Provides Unicode-safe constants and mappings constructed via `ChrW$()`:
+* Core vocabulary properties: `WordKhong`, `WordMot`, `WordHai`, `WordDong`, `WordChan`, `WordNghin`, `WordNgan`, `WordTrieu`, `WordTy`, `WordLe`, `WordLinh`, `WordMuoi`, `WordLam`, `WordTu`, `WordAm`, `WordPhay`, `WordCent`, `WordDolaMy`.
+* Case conversion tables: Complete mapping for Vietnamese lowercase $\leftrightarrow$ uppercase vowels and diacritics.
+
+### 4.3 `VietnameseNumber.bas`
 Pure number grammar conversion engine.
 * **Strict Input Typing**: Accepts numeric Variant subtypes (`vbInteger`, `vbLong`, `vbSingle`, `vbDouble`, `vbCurrency`, `vbDecimal`). Rejects non-numeric strings (string coercion is owned by `src/excel/`).
 * **Public Signatures**:
   ```vb
-  ' Low-level strict function (raises ERR_* on failure)
   Public Function NumberToVietnamese( _
       ByVal Value As Variant, _
       ByRef Options As VnEngineOptions _
   ) As String
 
-  ' Safe function returning Boolean status
   Public Function TryNumberToVietnamese( _
       ByVal Value As Variant, _
       ByRef Options As VnEngineOptions, _
@@ -266,14 +280,13 @@ Pure number grammar conversion engine.
       ByRef OutErrorMessage As String _
   ) As Boolean
 
-  ' Convenience wrapper with default options
   Public Function NumberToVietnameseDefault(ByVal Value As Variant) As String
   ```
 
-### 4.3 `Currency.bas`
-Handles monetary assembly, rounding, sub-units, and `"chẵn"`.
+### 4.4 `Currency.bas`
+Handles monetary assembly, deterministic rounding, sub-units, and `"chẵn"`.
 * **Deterministic Rounding**: Implements pure VBA `RoundHalfAwayFromZero(Value, DecimalPlaces)`—never uses VBA `Round()` (which performs banker's rounding).
-* **Carry Handling**: Rounding executes on the original value *before* integer and sub-unit decomposition (e.g. `1.999 USD` rounds to `2.00 USD`, avoiding `1 dollar 100 cents`).
+* **Carry Handling**: Rounding executes on the original value *before* integer and sub-unit decomposition (e.g. `1.999 USD` rounds to `2.00 USD`).
 * **Sign Safety**: Inspects raw signed input once; applies `"âm "` before the entire currency phrase (e.g. `-0.50 USD` $\rightarrow$ *âm không đô la Mỹ năm mươi cent*).
 * **Public Signature**:
   ```vb
@@ -284,11 +297,8 @@ Handles monetary assembly, rounding, sub-units, and `"chẵn"`.
   ) As String
   ```
 
-### 4.4 `TextFormatter.bas`
-Handles spacing, Unicode casing, and trailing punctuation in pure VBA.
-* **Pure VBA Unicode Mapping**: Implements full lookup tables for Vietnamese accented characters (e.g. `ă/Ă`, `đ/Đ`, `ê/Ê`, `ơ/Ơ`, `ư/Ư`, `á, à, ả, ã, ạ`, etc.). Zero Windows API declarations (`user32.dll` removed), zero bitness branching, 100% portable.
-* **Pipeline Sequence**:
-  $$\text{Trim} \rightarrow \text{Collapse Whitespace} \rightarrow \text{Remove Whitespace before Punctuation} \rightarrow \text{Apply Casing} \rightarrow \text{Append Trailing Period}$$
+### 4.5 `TextFormatter.bas`
+Handles spacing, Unicode casing, and trailing punctuation in pure VBA using `UnicodeText.bas`.
 * **Public Signature**:
   ```vb
   Public Function FormatText( _
@@ -298,9 +308,9 @@ Handles spacing, Unicode casing, and trailing punctuation in pure VBA.
   ) As String
   ```
 
-### 4.5 `CoreCoordinator.bas`
+### 4.6 `CoreCoordinator.bas`
 Unifies the transformation pipeline for callers.
-* **Advanced & Simple Signatures**:
+* **Signatures**:
   ```vb
   Public Function ConvertNumber( _
       ByVal Value As Variant, _
@@ -326,7 +336,16 @@ Unifies the transformation pipeline for callers.
 
 ## 5. Excel Interaction Layer (`src/excel/`)
 
-### 5.1 `CellProcessor.bas`
+### 5.1 `BuildInfo.bas`
+Auto-generated during the build process from the root `VERSION` file:
+```vb
+Option Explicit
+Public Const APP_VERSION As String = "1.0.0"
+Public Const APP_NAME As String = "BWPConvertTTNVN"
+Public Const APP_COPYRIGHT As String = "Copyright © 2026 - IT Leon"
+```
+
+### 5.2 `CellProcessor.bas`
 Coordinates reading from worksheets, validating ranges, executing bulk transformations, and writing outputs.
 
 #### A. Application State Preservation & Cleanup Contract
@@ -368,7 +387,9 @@ Cleanup:
 #### B. Range Validation Rules
 1. **Contiguous Single Area**: Rejects multi-area selections (`Range.Areas.Count <> 1`).
 2. **Same Workbook**: Source and destination must belong to the same workbook (`SourceRange.Parent.Parent Is DestinationRange.Parent.Parent`). Cross-sheet within the same workbook is supported.
-3. **No Overlap**: Source and destination ranges must not intersect (`Intersect(SourceRange, DestinationRange) Is Nothing`). Overlap is rejected for both Static and Formula modes.
+3. **Cross-Sheet Safe Overlap Check**:
+   * If `SourceRange.Parent IsNot DestinationRange.Parent` (different sheets), overlap is physically impossible and evaluates to `False`.
+   * Only calls `Application.Intersect(SourceRange, DestinationRange)` when both ranges belong to the **same worksheet**.
 4. **Destination Shape**:
    * Accepts a **single anchor cell** (e.g. `B2`), automatically expanding to match source dimensions.
    * Or accepts an **exact-size range** matching source rows and columns.
@@ -378,11 +399,13 @@ Cleanup:
 7. **Merged Cells**: Rejects merged cells in batch operations. Single source to single merged destination writes to `MergeArea.Cells(1, 1)`.
 8. **Occupied Cell Detection**: Any cell containing a constant OR formula (even if returning `""`) is treated as occupied.
 
-#### C. In-Memory Bulk Array Execution & Skip Preservation
+#### C. In-Memory Bulk Array Execution & Formula-Safe Skip Preservation
 * Reads source via `srcValues = SourceRange.Value2` (normalized to a 2D Variant array).
 * Processes conversion in memory.
-* **Skip Semantics**: Any cell skipped (empty, text error, invalid) **must never overwrite** the corresponding destination cell. The destination retains its original content.
-* Performance benchmark targets: 1,000 cells $< 1$s; 10,000 cells $< 5$s.
+* **Skip Semantics & Formula Protection**:
+  * Any skipped source cell (empty, text error, invalid) **must never overwrite** the corresponding destination cell.
+  * To prevent destroying destination formulas in skipped rows, `CellProcessor` writes output only to the specific converted cells or contiguous converted sub-blocks, or reads existing destination formulas and preserves them in the write array. Correctness strictly supersedes forcing a single naive `.Value2` write.
+* Performance benchmark targets (recorded, non-blocking): 1,000 cells $< 1$s; 10,000 cells $< 5$s.
 
 #### D. Structured Batch Result
 ```vb
@@ -396,20 +419,16 @@ Public Type VnBatchResult
 End Type
 ```
 
-### 5.2 `UndoManager.bas`
+### 5.3 `UndoManager.bas`
 Provides transactional 1-level Undo for conversions up to 10,000 cells.
-* **Threshold Guard**:
-  ```vb
-  Public Const MAX_UNDO_CELLS As Long = 10000
-  ```
-  If cells exceed 10,000, prompts the user: conversion will proceed with Undo disabled.
+* **Threshold Guard**: `Public Const MAX_UNDO_CELLS As Long = 10000`. If cells exceed 10,000, prompts the user: conversion will proceed with Undo disabled.
 * **Two-Phase Commit**:
   1. `PrepareUndoSnapshot(TargetRange)`: Captures `Workbook`, `Worksheet`, `Address`, `Values`, `Formulas`, and `HasFormula` flags into a staged buffer.
   2. `CommitUndoSnapshot()`: Only called after `ConvertRange` succeeds, replacing previous Undo state. If conversion fails, staged buffer is discarded and previous Undo remains intact.
 * **Restoration**: Restores `.Formula` for formulas, `.Value2` for constants, and `ClearContents` for previously blank cells.
 * **UI Invalidation**: Calls `gRibbon.InvalidateControl "btnUndo"` on all state transitions.
 
-### 5.3 `Settings.bas`
+### 5.4 `Settings.bas`
 * **Storage Location**: `HKCU\Software\VB and VBA Program Settings\BWPConvertTTNVN`.
 * **Schema Versioning**: Includes `SettingsVersion = 1` for safe migration.
 * **Contract**:
@@ -417,9 +436,9 @@ Provides transactional 1-level Undo for conversions up to 10,000 cells.
   * `SaveAllSettings`: Persists validated settings.
   * `ResetSettingsToDefault`: Clears registry and writes factory defaults.
 
-### 5.4 `UDF.bas` — Worksheet Functions
+### 5.5 `UDF.bas` — Worksheet Functions
 Worksheet formulas are deterministic and **never read Registry settings**.
-* **`=BWPVNWORDS(Target, [ZeroStyle], [ThousandStyle])`**: General number reading (Mode 2 decimals enabled by default).
+* **`=BWPVNWORDS(Target, [ZeroStyle], [ThousandStyle])`**: General number reading. **Explicitly overrides** the core engine's default `VnDecimalIgnore` and enables `VnDecimalDigits` so that `=BWPVNWORDS(125.05)` returns *Một trăm hai mươi lăm phẩy không năm.*
 * **`=BWPVND(Target, [AddChan], [ZeroStyle], [ThousandStyle])`**: Vietnamese Dong (truncate toward zero, adds `"đồng"`, optional `"chẵn"`).
 * **`=BWPVNDUPPER(Target, [AddChan])`**: All-uppercase Vietnamese Dong.
 * **Rules**:
@@ -428,7 +447,7 @@ Worksheet formulas are deterministic and **never read Registry settings**.
   * Dynamic arrays rejected in v1.0 (expects scalar input).
   * `Application.Volatile` is **omitted** (recalculates only when precedent cells change).
 
-### 5.5 `RibbonCallbacks.bas`
+### 5.6 `RibbonCallbacks.bas`
 * Caches `gRibbon As IRibbonUI` during `OnRibbonLoad`.
 * Validates `Selection` is a single contiguous `Range` before dispatching.
 * **Quick Convert Routing**:
@@ -478,11 +497,15 @@ Worksheet formulas are deterministic and **never read Registry settings**.
   * Catches cancellation cleanly without object assignment errors.
   * Verifies `pickedRange.Parent.Parent Is mHostWorkbook`.
   * Restores form.
+* **Formula Mode vs Currency Contract**:
+  * Formula Mode supports:
+    * **VND** $\rightarrow$ generates `=BWPVND(...)`
+    * **No Currency** $\rightarrow$ generates `=BWPVNWORDS(...)`
+  * When **USD** or **Custom** is selected, Formula Mode is automatically disabled, forcing Static Text mode with an informational label.
 * **Controls**:
   * Mutually exclusive Casing ComboBox: `cboCasing` (*Viết hoa chữ đầu*, *VIẾT HOA TOÀN BỘ*, *viết thường toàn bộ*).
   * Dynamic Currency Controls: Changing `cboCurrency` updates visible/enabled toggles for `"đồng"`, `"chẵn"`, sub-units.
-  * Output Mode: `optStatic` (default) vs `optFormula` (generates namespaced `=BWPVND(...)`).
-* **Copyright Notice**: Small footer label `Copyright © 2026 - IT Leon`.
+* **Copyright Notice**: Footer label `Copyright © 2026 - IT Leon`.
 * **Keyboard**: `Enter` $\rightarrow$ Convert; `Esc` / `X` $\rightarrow$ Cancel.
 
 ### 6.3 Settings Dialog (`frmSettings`)
@@ -493,7 +516,7 @@ Worksheet formulas are deterministic and **never read Registry settings**.
 * **Direction Enum**: `VnQuickAuto = 0` (column $\rightarrow$ right, row $\rightarrow$ below, cell $\rightarrow$ right), `VnQuickRight = 1`, `VnQuickBelow = 2`.
 
 ### 6.4 About Dialog (`frmAbout`)
-* Displays version `1.0.0`, MIT License, and verifiable offline/privacy statements.
+* Displays version from `BuildInfo.APP_VERSION`, MIT License, and verifiable offline/privacy statements.
 * **Mandatory Prominent UI Requirement**: Displays bold notice:
   **`Copyright © 2026 - IT Leon`**
 
@@ -501,7 +524,7 @@ Worksheet formulas are deterministic and **never read Registry settings**.
 
 ## 7. Build, Test & Packaging Pipeline
 
-### 7.1 Build Environment Contract
+### 7.1 Environmental Contract & Prerequisites
 * **Rule**: *“Automated `.xlam` packaging requires Microsoft Excel for Windows on the build machine.”*
 * **AccessVBOM Verification**:
   1. Registry check: `HKCU\Software\Microsoft\Office\<version>\Excel\Security\AccessVBOM`.
@@ -513,10 +536,28 @@ Worksheet formulas are deterministic and **never read Registry settings**.
 * Obtains Excel Windows handle `excel.Hwnd` and resolves its exact Windows Process ID (`PID`).
 * **Process Safety**: Cleanup code terminates **only** the build-owned PID. Never executes global `Stop-Process -Name EXCEL`.
 
-### 7.3 Multi-Stage Build Pipeline (`scripts/build.py`)
-1. **Stage 0 — Version & Contract Check**: Reads `VERSION`, validates `.frm` + `.frx` pairs, verifies Ribbon callback signatures match `RibbonCallbacks.bas`.
+### 7.3 Deterministic Component Import Manifest
+To prevent compilation or binding errors during COM import, modules are imported in strict dependency order:
+1. `src/core/CoreTypes.bas`
+2. `src/core/UnicodeText.bas`
+3. `src/core/VietnameseNumber.bas`
+4. `src/core/Currency.bas`
+5. `src/core/TextFormatter.bas`
+6. `src/core/CoreCoordinator.bas`
+7. `src/excel/BuildInfo.bas` (auto-generated from `VERSION`)
+8. `src/excel/Settings.bas`
+9. `src/excel/UndoManager.bas`
+10. `src/excel/CellProcessor.bas`
+11. `src/excel/UDF.bas`
+12. `src/excel/RibbonCallbacks.bas`
+13. `src/forms/frmConvert.frm` (and companion `.frx`)
+14. `src/forms/frmSettings.frm` (and companion `.frx`)
+15. `src/forms/frmAbout.frm` (and companion `.frx`)
+
+### 7.4 Multi-Stage Build Pipeline (`scripts/build.py`)
+1. **Stage 0 — Version & Manifest Check**: Reads `VERSION`, generates `BuildInfo.bas`, validates `.frm` + `.frx` pairs, verifies Ribbon callback signatures match `RibbonCallbacks.bas`.
 2. **Stage 1 — Environment Preflight**: Checks Windows, Excel installation, AccessVBOM capability.
-3. **Stage 2 — Isolated COM Build**: Headless Excel creates workbook, sets Add-in metadata, imports all `.bas` and `.frm` components, runs smoke compile validation, saves as `dist/BWPConvertTTNVN.xlam` (`FileFormat = 55`). Cleanly terminates COM process.
+3. **Stage 2 — Isolated COM Build**: Isolated hidden Excel COM instance creates workbook, sets Add-in metadata, imports modules in strict manifest order, runs smoke compile validation, saves as `dist/BWPConvertTTNVN.xlam` (`FileFormat = 55`). Cleanly terminates COM process.
 4. **Stage 3 — Direct OpenXML Ribbon Injection (`scripts/package_ribbon.py`)**:
    * Opens `.xlam` as ZIP archive.
    * Injects `customUI/customUI14.xml`.
@@ -525,17 +566,18 @@ Worksheet formulas are deterministic and **never read Registry settings**.
 5. **Stage 4 — Reopen Validation**: Fresh isolated Excel COM instance opens the final packaged `.xlam` to verify OpenXML structural validity.
 6. **Stage 5 — Automated Test Execution (`tests/run_tests.py`)**:
    * **Test Class A (Core API)**: Calls `'BWPConvertTTNVN.xlam'!ConvertNumberDefault` via `excel.Run`.
-   * **Test Class B (Worksheet UDF)**: Writes actual formula `=BWPVND(A1)` to a temporary `.xlsx`, calls `excel.CalculateFull()`, and asserts cell value.
-   * **Test Class C (Integration)**: Tests Quick Convert, batch arrays, destination expansion, overlap rejection, Undo.
+   * **Test Class B (Worksheet UDF)**: Writes actual formulas `=BWPVND(A1)` and `=BWPVNWORDS(A1)` to a temporary `.xlsx`, calls `excel.CalculateFull()`, and asserts cell values.
+   * **Test Class C (Integration)**: Tests Quick Convert, batch arrays, destination expansion, overlap rejection, Undo, skipped row formula preservation.
    * Driven by `tests/expected_cases.csv`.
 7. **Stage 6 — Release Packaging**:
    * Bundles `BWPConvertTTNVN.xlam`, `Install.vbs`, `README.md`, `LICENSE`, `CHANGELOG.md` into `dist/BWPConvertTTNVN-v1.0.0.zip`.
    * Generates cryptographic checksum: `dist/BWPConvertTTNVN-v1.0.0.sha256`.
 
-### 7.4 Installer Contract (`installer/Install.vbs`)
+### 7.5 Installer Contract (`installer/Install.vbs`)
 * Non-elevated installer running under standard user permissions.
-* **Process Detection**: Checks if Excel is currently running. If open, alerts user to save work and closes gracefully.
-* **Mark of the Web (MOTW) Removal**: Microsoft blocks downloaded Internet macros by default. The installer explicitly unblocks the add-in file by deleting the `Zone.Identifier` alternate data stream before registration.
+* **Process Detection**: Checks if Excel is currently running. If open, alerts user to save work and closes gracefully. **Never** terminates the user's Excel processes automatically.
+* **Cryptographic Verification**: Verifies the SHA-256 hash of `BWPConvertTTNVN.xlam` against `BWPConvertTTNVN-v1.0.0.sha256` before modifying any files.
+* **Mark of the Web (MOTW) Removal**: Unblocks the trusted add-in file by deleting the `Zone.Identifier` alternate data stream before registration.
 * **Idempotent Registration**: Inspects `Application.AddIns`. Reuses existing registration if present, otherwise calls `AddIns.Add(destPath, True)`, setting `Installed = True`.
 
 ---
@@ -555,10 +597,13 @@ Worksheet formulas are deterministic and **never read Registry settings**.
 | **AC-09** | Overflow | `1,000,000,000,000,000` | Returns `CVErr(xlErrValue)` in UDF / validation error in GUI |
 | **AC-10** | Negative | `-150,000` | `"Âm một trăm năm mươi nghìn đồng chẵn."` |
 | **AC-11** | Decimals | `125.5` (VND) $\rightarrow$ *Một trăm hai mươi lăm đồng chẵn.*; `125.05` (General) $\rightarrow$ *Một trăm hai mươi lăm phẩy không năm.* | Mode 1 truncates toward zero; Mode 2 spells decimal digits |
-| **AC-12** | Dialects | `ZeroStyle = linh`, `ThousandStyle = ngàn` | Outputs *linh* and *ngàn* respectively |
-| **AC-13** | Batch | Range `A2:A100` with 1 anchor `B2` | Converted in $< 1$s; skipped cells leave destination untouched |
-| **AC-14** | Overlap | Source `A1:A10`, Dest `A5:A14` | Rejected with clear overlap warning |
+| **AC-12** | Dialects | `ZeroStyle = linh`, `ThousandStyle = ngàn`, `FourStyle = bốn` | Outputs *linh*, *ngàn*, and *bốn* respectively |
+| **AC-13** | Batch Execution | Range `A2:A100` with 1 anchor `B2` | Converted correctly; skipped cells leave destination untouched; execution time logged |
+| **AC-14** | Overlap | Source `A1:A10`, Dest `A5:A14` on same sheet | Rejected with clear overlap warning; cross-sheet allowed |
 | **AC-15** | Undo | Convert 500 cells $\rightarrow$ click Undo | 100% original values and formulas restored |
-| **AC-16** | Worksheet UDF | `=BWPVND(A1)` in live workbook | Calculates properly without depending on Registry settings |
-| **AC-17** | Copyright UI | Inspect `frmAbout` and `frmConvert` | `Copyright © 2026 - IT Leon` is clearly and visibly present |
-| **AC-18** | Installer | Execute `Install.vbs` on fresh system | Unblocks MOTW, registers add-in, Ribbon tab appears on Excel launch |
+| **AC-16** | Worksheet UDF | `=BWPVND(A1)` and `=BWPVNWORDS(A1)` in live workbook | Calculates properly; `=BWPVNWORDS(125.05)` reads decimal digits |
+| **AC-17** | USD Sub-units | `1.005 USD` $\rightarrow$ `1.01`, `1.999 USD` $\rightarrow$ `2.00`, `-0.50 USD` $\rightarrow$ *âm không đô la Mỹ năm mươi cent* | Correct rounding and sign placement |
+| **AC-18** | Skip Formulas | Source has invalid cells, dest has formulas | Destination formulas in skipped rows are preserved |
+| **AC-19** | Encoding Smoke | Inspect runtime strings for `Một`, `đồng`, `chẵn`, `nghìn`, `tỷ`, `lẻ`, `mốt`, `tư` | 100% UTF-16 code match across any Windows locale |
+| **AC-20** | Copyright UI | Inspect `frmAbout` and `frmConvert` | `Copyright © 2026 - IT Leon` is clearly and visibly present |
+| **AC-21** | Installer | Execute `Install.vbs` on fresh system | Verifies SHA-256, unblocks MOTW, registers add-in, Ribbon tab appears on Excel launch |
