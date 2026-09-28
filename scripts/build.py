@@ -6,6 +6,7 @@ direct OpenXML Ribbon injection, reopen validation, and automated test execution
 
 import argparse
 import gc
+import hashlib
 import os
 import re
 import subprocess
@@ -13,6 +14,7 @@ import sys
 import time
 import winreg
 import xml.etree.ElementTree as ET
+import zipfile
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
@@ -648,18 +650,99 @@ def stage_5_run_tests(target_xlam: Path, report_path: Path):
     print("  [Stage 5: PASSED]")
 
 
+def stage_6_release_packaging(project_root: Path, target_xlam: Path, version_str: str) -> Dict[str, Any]:
+    """
+    Stage 6: Release Packaging:
+    - Calculates SHA-256 hash of target_xlam.
+    - Generates dist/BWPConvertTTNVN-v{version_str}.sha256 and dist/BWPConvertTTNVN.sha256.
+    - Bundles dist/BWPConvertTTNVN-v{version_str}.zip containing:
+      - BWPConvertTTNVN.xlam
+      - Install.vbs
+      - README.md
+      - LICENSE
+      - CHANGELOG.md
+      - BWPConvertTTNVN-v{version_str}.sha256
+    """
+    print("\n--- [Stage 6: Release Packaging & Checksum Generation] ---")
+    if not target_xlam.is_file():
+        raise FileNotFoundError(f"Cannot package release; add-in artifact missing: {target_xlam}")
+
+    dist_dir = target_xlam.parent
+    dist_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. Calculate SHA-256
+    xlam_bytes = target_xlam.read_bytes()
+    sha256_hash = hashlib.sha256(xlam_bytes).hexdigest()
+    print(f"  [SHA-256] Calculated checksum: {sha256_hash}")
+
+    versioned_sha_file = dist_dir / f"{APP_NAME}-v{version_str}.sha256"
+    canonical_sha_file = dist_dir / f"{APP_NAME}.sha256"
+
+    # Write checksum files (standard sha256sum format)
+    checksum_line = f"{sha256_hash} *{target_xlam.name}\n"
+    versioned_sha_file.write_text(checksum_line, encoding="utf-8")
+    canonical_sha_file.write_text(checksum_line, encoding="utf-8")
+    print(f"  [Checksum File] Generated: {versioned_sha_file.relative_to(project_root)}")
+    print(f"  [Checksum File] Generated: {canonical_sha_file.relative_to(project_root)}")
+
+    # 2. Check all required release assets exist
+    installer_vbs = project_root / "installer" / "Install.vbs"
+    readme_md = project_root / "README.md"
+    license_file = project_root / "LICENSE"
+    changelog_md = project_root / "CHANGELOG.md"
+
+    for asset_path in [installer_vbs, readme_md, license_file, changelog_md]:
+        if not asset_path.is_file():
+            raise FileNotFoundError(f"Required release asset missing: {asset_path}")
+
+    # 3. Create release ZIP bundle
+    zip_path = dist_dir / f"{APP_NAME}-v{version_str}.zip"
+    bundle_items = [
+        (target_xlam, target_xlam.name),
+        (installer_vbs, "Install.vbs"),
+        (readme_md, "README.md"),
+        (license_file, "LICENSE"),
+        (changelog_md, "CHANGELOG.md"),
+        (versioned_sha_file, versioned_sha_file.name),
+    ]
+
+    print(f"  [ZIP Bundle] Creating release archive: {zip_path.relative_to(project_root)}...")
+    with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED) as zf:
+        for src_path, arc_name in bundle_items:
+            zf.write(src_path, arcname=arc_name)
+            print(f"    + Added: {arc_name} ({src_path.stat().st_size:,} bytes)")
+
+    # Validate ZIP integrity
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        bad_file = zf.testzip()
+        if bad_file:
+            raise RuntimeError(f"Corrupt file detected in generated release zip: {bad_file}")
+        namelist = zf.namelist()
+
+    print(f"  [ZIP Bundle] Successfully packaged {len(namelist)} items into {zip_path.name} ({zip_path.stat().st_size:,} bytes)")
+    print("  [Stage 6: PASSED]")
+
+    return {
+        "zip": zip_path,
+        "versioned_sha": versioned_sha_file,
+        "canonical_sha": canonical_sha_file,
+        "sha256": sha256_hash,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Main Build Orchestrator
 # ---------------------------------------------------------------------------
 
 def run_build(
     skip_tests: bool = False,
+    release: bool = False,
     output_xlam: Optional[Union[str, Path]] = None,
     ribbon_xml: Optional[Union[str, Path]] = None,
     report_path: Optional[Union[str, Path]] = None,
 ) -> Path:
     """
-    Executes the full automated build pipeline stages 0 through 5.
+    Executes the full automated build pipeline stages 0 through 6.
     """
     start_time = time.time()
     target_xlam = Path(output_xlam).resolve() if output_xlam else DEFAULT_XLAM_PATH
@@ -669,10 +752,12 @@ def run_build(
     print("=" * 70)
     print(f"  {APP_NAME} - Automated Build Pipeline")
     print(f"  Target: {target_xlam}")
+    if release:
+        print("  Mode:   Release Packaging Enabled (--release)")
     print("=" * 70)
 
     # Stage 0: Version & Manifest Check
-    stage_0_version_and_manifest(PROJECT_ROOT)
+    version_str = stage_0_version_and_manifest(PROJECT_ROOT)
 
     # Stage 1: Environment Preflight
     stage_1_preflight_check()
@@ -692,12 +777,19 @@ def run_build(
     else:
         print("\n--- [Stage 5: Skipped by Flag] ---")
 
+    # Stage 6: Release Packaging
+    if release:
+        stage_6_release_packaging(PROJECT_ROOT, target_xlam, version_str)
+
     elapsed = time.time() - start_time
     print("\n" + "=" * 70)
     print(f"  [BUILD SUCCESS] {APP_NAME} compiled successfully in {elapsed:.2f}s!")
     print(f"  Add-in artifact: {target_xlam}")
     if not skip_tests and target_report.is_file():
         print(f"  Test report:     {target_report}")
+    if release:
+        print(f"  Release bundle:  {target_xlam.parent / f'{APP_NAME}-v{version_str}.zip'}")
+        print(f"  Checksum:        {target_xlam.parent / f'{APP_NAME}-v{version_str}.sha256'}")
     print("=" * 70)
     return target_xlam
 
@@ -707,6 +799,7 @@ def main():
     parser.add_argument("--preflight", action="store_true", help="Run preflight environment diagnostics only")
     parser.add_argument("--generate-build-info", action="store_true", help="Regenerate src/excel/BuildInfo.bas from VERSION only")
     parser.add_argument("--skip-tests", action="store_true", help="Skip running the 3-tier test suite in Stage 5")
+    parser.add_argument("--release", "-r", action="store_true", help="Package release distribution (.zip and .sha256 checksums) in Stage 6")
     parser.add_argument("--output", default=str(DEFAULT_XLAM_PATH), help=f"Destination path for .xlam (default: {DEFAULT_XLAM_PATH})")
     parser.add_argument("--ribbon-xml", default=str(DEFAULT_RIBBON_XML), help=f"Path to customUI XML (default: {DEFAULT_RIBBON_XML})")
     parser.add_argument("--test-report", default=str(DEFAULT_TEST_REPORT), help=f"Path to test report output (default: {DEFAULT_TEST_REPORT})")
@@ -730,6 +823,7 @@ def main():
     try:
         run_build(
             skip_tests=args.skip_tests,
+            release=args.release,
             output_xlam=args.output,
             ribbon_xml=args.ribbon_xml,
             report_path=args.test_report,

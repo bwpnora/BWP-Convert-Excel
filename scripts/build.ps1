@@ -12,12 +12,16 @@
 
 .PARAMETER SkipTests
     Skips the Stage 5 automated 3-tier test runner.
+
+.PARAMETER Release
+    Packages the release distribution (.zip and .sha256 checksums) in Stage 6.
 #>
 
 [CmdletBinding()]
 param(
     [switch]$EnableAccessVBOM,
-    [switch]$SkipTests
+    [switch]$SkipTests,
+    [switch]$Release
 )
 
 $ErrorActionPreference = "Stop"
@@ -56,6 +60,9 @@ try {
     $pyArgs = @($buildScript)
     if ($SkipTests) {
         $pyArgs += "--skip-tests"
+    }
+    if ($Release) {
+        $pyArgs += "--release"
     }
 
     Write-Host "Executing build pipeline: python $($pyArgs -join ' ')" -ForegroundColor Cyan
