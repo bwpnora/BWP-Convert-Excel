@@ -351,10 +351,17 @@ class TestUnicodeTextEngine(unittest.TestCase):
         """Verify actual VBA compilation and execution in an isolated Excel COM session."""
         from scripts.build import ExcelSession
 
+        try:
+            session_ctx = ExcelSession(visible=False, display_alerts=False)
+            session = session_ctx.__enter__()
+        except Exception as e:
+            self.skipTest(f"Excel COM not available on this host: {e}")
+            return
+
         core_types_file = PROJECT_ROOT / "src" / "core" / "CoreTypes.bas"
         unicode_text_file = PROJECT_ROOT / "src" / "core" / "UnicodeText.bas"
 
-        with ExcelSession(visible=False, display_alerts=False) as session:
+        try:
             wb = session.excel.Workbooks.Add()
             try:
                 wb.VBProject.VBComponents.Import(str(core_types_file))
@@ -424,6 +431,8 @@ class TestUnicodeTextEngine(unittest.TestCase):
                 )
             finally:
                 wb.Close(SaveChanges=False)
+        finally:
+            session_ctx.__exit__(None, None, None)
 
 
 if __name__ == "__main__":

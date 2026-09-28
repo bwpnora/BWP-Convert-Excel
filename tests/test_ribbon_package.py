@@ -174,14 +174,14 @@ class TestRibbonPackagingOpenXml(unittest.TestCase):
     """Validates OpenXML ZIP package manipulation and integrity checks."""
 
     def setUp(self):
-        self.temp_dir = Path(tempfile.mkdtemp(prefix="test_ribbon_pkg_"))
+        self.temp_dir = Path(tempfile.mkdtemp(prefix="test_ribbon_pkg_")).resolve()
 
     def tearDown(self):
         shutil.rmtree(self.temp_dir, ignore_errors=True)
 
     def _create_mock_xlam(self, include_vba: bool = True) -> Path:
         """Creates a mock OpenXML .xlam package without needing Excel COM."""
-        xlam_path = self.temp_dir / ("mock_with_vba.xlam" if include_vba else "mock_blank.xlam")
+        xlam_path = (self.temp_dir / ("mock_with_vba.xlam" if include_vba else "mock_blank.xlam")).resolve()
 
         rels_content = (
             b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'
@@ -218,7 +218,7 @@ class TestRibbonPackagingOpenXml(unittest.TestCase):
 
         # Run injection
         out_path = inject_ribbon(xlam_path, RIBBON_XML_PATH)
-        self.assertEqual(out_path, xlam_path)
+        self.assertEqual(out_path.resolve(), xlam_path.resolve())
 
         # Verify output archive
         with zipfile.ZipFile(xlam_path, "r") as z_out:

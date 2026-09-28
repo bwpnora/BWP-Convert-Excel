@@ -134,11 +134,15 @@ class TestInstallerContract(unittest.TestCase):
         """Install.vbs must run without syntax errors under cscript in /quiet mode."""
         cmd = ["cscript", "//nologo", str(self.installer_path), "/quiet"]
         proc = subprocess.run(cmd, capture_output=True, text=True, check=False)
-        # Exit code 0 (success) or 1 (Excel is running in background) indicates valid syntax
+        # Verify no VBScript compilation or parser errors were produced by cscript
+        self.assertNotIn("compilation error", proc.stderr.lower())
+        self.assertNotIn("compilation error", proc.stdout.lower())
+        # Handled exit codes from Install.vbs:
+        # 0: success, 1: Excel running, 2: xlam missing (pre-build CI), 5: Excel COM unavailable
         self.assertIn(
             proc.returncode,
-            [0, 1],
-            f"Install.vbs failed with syntax/runtime error (code {proc.returncode}):\n{proc.stderr}",
+            [0, 1, 2, 5],
+            f"Install.vbs failed with unexpected exit code ({proc.returncode}):\n{proc.stderr}\n{proc.stdout}",
         )
 
 
