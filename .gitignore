@@ -1,0 +1,19 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Superpowers SDD workspace
+.superpowers/
+.worktrees/
+worktrees/
+
+# Distribution artifacts
+dist/
+temp/
+*.tmp
+
+# Office temp files
+~$*.xlsx
+~$*.xlsm
+~$*.xlam
